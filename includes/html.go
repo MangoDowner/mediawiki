@@ -8,6 +8,7 @@ import (
 	"github.com/MangoDowner/mediawiki/php"
 	"html"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -173,7 +174,7 @@ func (h *Html) Element(element string, attribs map[string]interface{}, contents 
  *
  * @return string
  */
-func (h *Html) OpenElement(element string, attribs map[string]interface{}) string {
+func (h *Html) OpenElement(element string, attribs map[string]interface{}) (ret string) {
 	// This is not required in HTML5, but let"s do it anyway, for
 	// consistency and better compression.
 	element = strings.ToLower(element)
@@ -208,7 +209,8 @@ func (h *Html) OpenElement(element string, attribs map[string]interface{}) strin
 	if element == "button" && attribs["type"] == "" {
 		attribs["type"] = "submit"
 	}
-	return "<$element" + h.ExpandAttributes(h.DropDefaults(element, attribs)) + ">"
+	ret = fmt.Sprintf("<%s%s>", element, h.ExpandAttributes(h.DropDefaults(element, attribs)))
+	return ret
 }
 
 /**
@@ -466,4 +468,22 @@ func (h *Html) ExpandAttributes(attribs map[string]interface{}) (ret string) {
 		ret = fmt.Sprintf("%s %s=%s%s%s", ret, key, quote, php.EncodeAttribute(valueStr), quote)
 	}
 	return ret
+}
+
+/**
+ * Determines if the given MIME type is xml.
+ *
+ * @param string $mimetype MIME type
+ * @return bool
+ */
+func (h *Html) IsXmlMimeType(mimetype string) bool {
+	// https://html.spec.whatwg.org/multipage/infrastructure.html#xml-mime-type
+	// * text/xml
+	// * application/xml
+	// * Any MIME type with a subtype ending in +xml (this implicitly includes application/xhtml+xml)
+	b, err := regexp.Match(`^(text|application)/xml$|^.+/.+\+xml$`, []byte(mimetype))
+	if !b || err != nil {
+		return false
+	}
+	return true
 }

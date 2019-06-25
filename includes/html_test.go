@@ -2,6 +2,7 @@ package includes
 
 import (
 	"fmt"
+	test "github.com/MangoDowner/mediawiki/tests"
 	"testing"
 )
 
@@ -21,6 +22,105 @@ func TestButtonAttributes(t *testing.T) {
 	fmt.Println(result1)
 }
 
+/**
+ * @covers Html::element
+ * @covers Html::rawElement
+ * @covers Html::openElement
+ * @covers Html::closeElement
+ */
+func TestElementBasics(t *testing.T) {
+	h := new(Html)
+
+	test.AssetEqual(
+		"<img/>",
+		h.Element("img", map[string]interface{}{}, ""),
+		"Self-closing tag for short-tag elements",
+	)
+
+	test.AssetEqual(
+		"<element></element>",
+		h.Element("element", map[string]interface{}{}, ""),
+		"Close tag for empty element (null, null)",
+	)
+
+	test.AssetEqual(
+		"<element></element>",
+		h.Element("element", map[string]interface{}{}, ""),
+		"Close tag for empty element (array, string)",
+	)
+
+	test.AssetEqual(
+		`<em class="bar quux"></em>`,
+		h.Element("em", map[string]interface{}{
+			"class" : []string{"bar", "quux"},
+		}, ""),
+		"Tag for em with class",
+	)
+}
+
+func dataXmlMimeType() map[string]bool{
+	return map[string]bool {
+		// ( $mimetype, $isXmlMimeType )
+		// HTML is not an XML MimeType
+		"text/html" : false,
+		// XML is an XML MimeType
+		"text/xml" :  true,
+		"application/xml" : true ,
+		// XHTML is an XML MimeType
+		"application/xhtml+xml" : true ,
+		// Make sure other +xml MimeTypes are supported
+		// SVG is another random MimeType even though we don't use it
+		"image/svg+xml" : true ,
+		// Complete random other MimeTypes are not XML
+		"text/plain" : false ,
+	}
+}
+
+/**
+ * @covers Html::expandAttributes
+ */
+func TestXmlMimeType(t *testing.T) {
+	h := new(Html)
+
+	test.AssetEqual(
+		false,
+		h.IsXmlMimeType("text/html"),
+		"HTML is not an XML MimeType",
+	)
+
+	test.AssetEqual(
+		true,
+		h.IsXmlMimeType("text/xml"),
+		"XML is an XML MimeType",
+	)
+
+	test.AssetEqual(
+		true,
+		h.IsXmlMimeType("application/xml"),
+		"XML is an XML MimeType",
+	)
+
+	test.AssetEqual(
+		true,
+		h.IsXmlMimeType("application/xhtml+xml"),
+		"XHTML is an XML MimeType",
+	)
+
+	test.AssetEqual(
+		true,
+		h.IsXmlMimeType("image/svg+xml"),
+		"SVG is another random MimeType even though we don't use it",
+	)
+
+	test.AssetEqual(
+		false,
+		h.IsXmlMimeType("text/plain"),
+		"Complete random other MimeTypes are not XML",
+	)
+
+
+
+}
 
 /**
  * @covers Html::expandAttributes
@@ -125,5 +225,62 @@ func TestExpandAttributesListValueAttributes(t *testing.T) {
 	result = h.ExpandAttributes(map[string]interface{}{
 		"class": []string{"foo bar", "bar foo", "foo", "bar bar"},
 	})
+	fmt.Println(result)
+}
+
+/**
+ * Test feature added by r96188, let pass attributes values as
+ * a PHP array. Restricted to class,rel, accesskey.
+ * @covers Html::expandAttributes
+ */
+func TestExpandAttributesSpaceSeparatedAttributesWithBoolean(t *testing.T) {
+	h := new(Html)
+	var result string
+	// Method use isset() internally, make sure we do discard
+	// attributes values which have been assigned well known values
+	//TODO: 情况不支持
+	result = h.ExpandAttributes(map[string]interface{}{"class": map[string]string{
+		//"booltrue": true,
+		//"emptystring": "",
+		//"boolfalse": false,
+		//"boolfalse": 0,
+		//"one": 1,
+	}})
+	fmt.Println(result)
+}
+
+/**
+ * How do we handle duplicate keys in HTML attributes expansion?
+ * We could pass a "class" the values: 'GREEN' and array( 'GREEN' => false )
+ * The latter will take precedence.
+ *
+ * Feature added by r96188
+ * @covers Html::expandAttributes
+ */
+func TestValueIsAuthoritativeInSpaceSeparatedAttributesArrays(t *testing.T) {
+	h := new(Html)
+	var result string
+	result = h.ExpandAttributes(map[string]interface{}{"class": map[string]string{
+		// TODO: 情况不支持
+		//"GREEN": "",
+		//"GREEN": false,
+		//"GREEN": "",
+	}})
+	fmt.Println(result)
+}
+
+/**
+ * @covers Html::expandAttributes
+ * @expectedException MWException
+ */
+func TestExpandAttributes_ArrayOnNonListValueAttribute_ThrowsException(t *testing.T) {
+	h := new(Html)
+	var result string
+	// Real-life test case found in the Popups extension (see Gerrit cf0fd64),
+	// when used with an outdated BetaFeatures extension (see Gerrit deda1e7)
+	result = h.ExpandAttributes(map[string]interface{}{"src": map[string]string{
+		"ltr": "ltr.svg",
+		"rtl": "rtl.svg",
+	}})
 	fmt.Println(result)
 }
