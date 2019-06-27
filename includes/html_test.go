@@ -284,3 +284,447 @@ func TestExpandAttributes_ArrayOnNonListValueAttribute_ThrowsException(t *testin
 	}})
 	fmt.Println(result)
 }
+
+/**
+ * Test out Html::element drops or enforces default value
+ * @covers Html::dropDefaults
+ * @dataProvider provideElementsWithAttributesHavingDefaultValues
+ */
+func TestDropDefaults(t *testing.T) {
+	h := new(Html)
+
+	test.AssetEqual(
+		"<area/>",
+		h.Element("area", map[string]interface{}{
+			"shape":"rect",
+		}, ""),
+		"Generic cases, match $attribDefault static array",
+	)
+
+	test.AssetEqual(
+		`<button type="submit"></button>`,
+		h.Element("button", map[string]interface{}{
+			"formaction":"GET",
+		}, ""),
+		"Generic cases, match $attribDefault static array",
+	)
+
+	test.AssetEqual(
+		`<button type="submit"></button>`,
+		h.Element("button", map[string]interface{}{
+			"formenctype":"application/x-www-form-urlencoded",
+		}, ""),
+		"Generic cases, match $attribDefault static array",
+	)
+	test.AssetEqual(
+		`<canvas></canvas>`,
+		h.Element("canvas", map[string]interface{}{
+			"height":"150",
+		}, ""),
+		"Generic cases, match $attribDefault static array",
+	)
+
+	test.AssetEqual(
+		`<canvas></canvas>`,
+		h.Element("canvas", map[string]interface{}{
+			"width":"300",
+		}, ""),
+		"Generic cases, match $attribDefault static array",
+	)
+	// Also check with numeric values
+	test.AssetEqual(
+		`<canvas></canvas>`,
+		h.Element("canvas", map[string]interface{}{
+			"width":150,
+		}, ""),
+		"Also check with numeric values",
+	)
+
+	test.AssetEqual(
+		`<canvas></canvas>`,
+		h.Element("canvas", map[string]interface{}{
+			"width":300,
+		}, ""),
+		"Also check with numeric values",
+	)
+
+	test.AssetEqual(
+		`<form></form>`,
+		h.Element("form", map[string]interface{}{
+			"action":"GET",
+		}, ""),
+		"",
+	)
+
+	test.AssetEqual(
+		`<form></form>`,
+		h.Element("form", map[string]interface{}{
+			"autocomplete":"on",
+		}, ""),
+		"",
+	)
+
+	test.AssetEqual(
+		`<form></form>`,
+		h.Element("form", map[string]interface{}{
+			"enctype":"application/x-www-form-urlencoded",
+		}, ""),
+		"",
+	)
+
+	test.AssetEqual(
+		`<input/>`,
+		h.Element("input", map[string]interface{}{
+			"type":"text",
+		}, ""),
+		"",
+	)
+
+	test.AssetEqual(
+		`<keygen/>`,
+		h.Element("keygen", map[string]interface{}{
+			"keytype":"rsa",
+		}, ""),
+		"",
+	)
+
+	test.AssetEqual(
+		`<link/>`,
+		h.Element("link", map[string]interface{}{
+			"media":"all",
+		}, ""),
+		"",
+	)
+
+	test.AssetEqual(
+		`<menu></menu>`,
+		h.Element("menu", map[string]interface{}{
+			"type":"list",
+		}, ""),
+		"",
+	)
+
+	test.AssetEqual(
+		`<script></script>`,
+		h.Element("script", map[string]interface{}{
+			"type":"text/javascript",
+		}, ""),
+		"",
+	)
+
+	test.AssetEqual(
+		`<style></style>`,
+		h.Element("style", map[string]interface{}{
+			"media":"all",
+		}, ""),
+		"",
+	)
+
+	test.AssetEqual(
+		`<style></style>`,
+		h.Element("style", map[string]interface{}{
+			"type":"text/css",
+		}, ""),
+		"",
+	)
+
+	test.AssetEqual(
+		`<textarea></textarea>`,
+		h.Element("textarea", map[string]interface{}{
+			"wrap":"soft",
+		}, ""),
+		"",
+	)
+
+	// SPECIFIC CASES
+	// <link type="text/css">
+	test.AssetEqual(
+		`<link/>`,
+		h.Element("link", map[string]interface{}{
+			"type":"text/css",
+		}, ""),
+		`<link type="text/css">`,
+	)
+
+	// <input> specific handling
+	test.AssetEqual(
+		`<input type="checkbox"/>`,
+		h.Element("input", map[string]interface{}{
+			"type":"checkbox", "value":"on",
+		}, ""),
+		`Default value "on" is stripped of checkboxes`,
+	)
+	test.AssetEqual(
+		`<input type="radio"/>`,
+		h.Element("input", map[string]interface{}{
+			"type":"radio", "value":"on",
+		}, ""),
+		`Default value "on" is stripped of radio buttons`,
+	)
+	test.AssetEqual(
+		`<input type="submit" value="Submit"/>`,
+		h.Element("input", map[string]interface{}{
+			"type":"submit", "value":"submit",
+		}, ""),
+		`Default value "Submit" is kept on submit buttons (for possible l10n issues)`,
+	)
+	test.AssetEqual(
+		`<input type="color"/>`,
+		h.Element("input", map[string]interface{}{
+			"type":"color", "value":"",
+		}, ""),
+		``,
+	)
+	test.AssetEqual(
+		`<input type="range"/>`,
+		h.Element("input", map[string]interface{}{
+			"type":"range", "value":"",
+		}, ""),
+		``,
+	)
+
+	// <button> specific handling
+	// see remarks on https://msdn.microsoft.com/library/ms535211(v=vs.85).aspx
+	test.AssetEqual(
+		`<select multiple=""></select>`,
+		h.Element("select", map[string]interface{}{
+			"size":"4", "multiple":true,
+		}, ""),
+		`<select> specific handling`,
+	)
+	test.AssetEqual(
+		`<select multiple=""></select>`,
+		h.Element("select", map[string]interface{}{
+			"size":4, "multiple":true,
+		}, ""),
+		`.. with numeric value`,
+	)
+	test.AssetEqual(
+		`<select></select>`,
+		h.Element("select", map[string]interface{}{
+			"size":"1", "multiple":false,
+		}, ""),
+		``,
+	)
+	test.AssetEqual(
+		`<select></select>`,
+		h.Element("select", map[string]interface{}{
+			"size":1, "multiple":false,
+		}, ""),
+		`.. with numeric value`,
+	)
+
+	// Passing an array as value
+	test.AssetEqual(
+		`<a class="css-class-one css-class-two"></a>`,
+		h.Element("a", map[string]interface{}{
+			"class": []string{"css-class-one", "css-class-two"},
+		}, ""),
+		`dropDefaults accepts values given as an array`,
+	)
+
+	// FIXME: doDropDefault should remove defaults given in an array
+	// Expected should be '<a></a>'
+	test.AssetEqual(
+		`<a class=""></a>`,
+		h.Element("a", map[string]interface{}{
+			"class": []string{"", ""},
+		}, ""),
+		`dropDefaults accepts values given as an array`,
+	)
+}
+
+/**
+ * @dataProvider provideInlineScript
+ * @covers Html::inlineScript
+ */
+func TestInlineScript(t *testing.T) {
+	h := new(Html)
+
+	test.AssetEqual(
+		"<script></script>",
+		h.InlineScript("", ""),
+		"Empty",
+	)
+	test.AssetEqual(
+		`<script>EXAMPLE.label("foo");</script>`,
+		h.InlineScript(`EXAMPLE.label("foo");`, ""),
+		"Simple",
+	)
+	test.AssetEqual(
+		`<script>EXAMPLE.label("<a>");</script>`,
+		h.InlineScript(`EXAMPLE.label("<a>");`, ""),
+		"HTML",
+	)
+	test.AssetEqual(
+		`<script>/* ERROR: Invalid script */</script>`,
+		h.InlineScript(`EXAMPLE.label("</script>");`, ""),
+		"Script closing string (lower)",
+	)
+	test.AssetEqual(
+		`<script>/* ERROR: Invalid script */</script>`,
+		h.InlineScript(`EXAMPLE.label("</SCriPT and STyLE>");`, ""),
+		"Script closing with non-standard attributes (mixed)",
+	)
+	// In HTML, <script> contents aren't just plain CDATA until </script>,
+	// there are levels of escaping modes, and the below sequence puts an
+	// HTML parser in a state where </script> would *not* close the script.
+	// https://html.spec.whatwg.org/multipage/parsing.html#script-data-double-escape-end-state
+	test.AssetEqual(
+		`<script>/* ERROR: Invalid script */</script>`,
+		h.InlineScript(`var a = "<!--<script>";`, ""),
+		"HTML-comment-open and script-open",
+	)
+}
+
+/**
+ * @covers Html::linkedScript
+ */
+func TestLinkedScript(t *testing.T) {
+	h := new(Html)
+
+	test.AssetEqual(
+		"<script>//example.com/somescript.js</script>",
+		h.InlineScript("//example.com/somescript.js", ""),
+		"",
+	)
+
+	test.AssetEqual(
+		"<script>../resources/lib/jquery/jquery.js</script>",
+		h.InlineScript("../resources/lib/jquery/jquery.js", ""),
+		"",
+	)
+}
+
+/**
+ * @covers Html::inlineStyle
+ */
+func TestInlineStyle(t *testing.T) {
+	h := new(Html)
+
+	test.AssetEqual(
+		`<style media="pc">/*<![CDATA[*/pre[\3C &]after/*]]>*/</style>`,
+		h.InlineStyle("pre[<&]after", "pc", map[string]interface{}{}),
+		"",
+	)
+}
+
+/**
+ * @covers Html::input
+ */
+func TestWrapperInput(t *testing.T) {
+	h := new(Html)
+
+	test.AssetEqual(
+		`<input type="radio" value="testval" name="testname"/>`,
+		h.Input("testname", "testval", "radio", nil),
+		"Input wrapper with type and value.",
+	)
+
+	test.AssetEqual(
+		`<input name="testname"/>`,
+		h.Input("testname", "", "", nil),
+		"Input wrapper with all default values.",
+	)
+}
+
+/**
+ * @covers Html::check
+ */
+func TestWrapperCheck(t *testing.T) {
+	h := new(Html)
+
+	test.AssetEqual(
+		`<input type="checkbox" value="1" name="testname"/>`,
+		h.Check("testname", false, nil),
+		"Checkbox wrapper unchecked.",
+	)
+
+	test.AssetEqual(
+		`<input type="checkbox" value="1" name="testname"/>`,
+		h.Check("testname", false, nil),
+		"Checkbox wrapper checked.",
+	)
+
+	test.AssetEqual(
+		`<input type="checkbox" value="testval" name="testname"/>`,
+		h.Check("testname", false, map[string]interface{}{
+			"value":"testval",
+		}),
+		"Checkbox wrapper with a value override.",
+	)
+}
+
+/**
+ * @covers Html::warningBox
+ * @covers Html::messageBox
+ */
+func TestMessageBox(t *testing.T) {
+	h := new(Html)
+
+	test.AssetEqual(
+		`<div class="messageBox"><h2>headingText</h2>message text</div>`,
+		h.MessageBox("message text", "messageBox", "headingText"),
+		"MessageBox with heading",
+	)
+}
+
+/**
+ * @covers Html::warningBox
+ * @covers Html::messageBox
+ */
+func TestWarnBox(t *testing.T) {
+	h := new(Html)
+
+	test.AssetEqual(
+		`<div class="warningbox">warn</div>`,
+		h.WarningBox("warn"),
+		"MessageBox with heading",
+	)
+}
+
+/**
+ * @covers Html::errorBox
+ * @covers Html::messageBox
+ */
+func TestErrorBox(t *testing.T) {
+	h := new(Html)
+
+	test.AssetEqual(
+		`<div class="errorbox">err</div>`,
+		h.ErrorBox("err", ""),
+		"MessageBox with heading",
+	)
+
+	test.AssetEqual(
+		`<div class="errorbox"><h2>heading</h2>err</div>`,
+		h.ErrorBox("err", "heading"),
+		"MessageBox with heading",
+	)
+
+	test.AssetEqual(
+		`<div class="errorbox"><h2>0</h2>err</div>`,
+		h.ErrorBox("err", "0"),
+		"MessageBox with heading",
+	)
+}
+
+/**
+ * @covers Html::successBox
+ * @covers Html::messageBox
+ */
+func TestSuccessBox(t *testing.T) {
+	h := new(Html)
+
+	test.AssetEqual(
+		`<div class="successbox">great</div>`,
+		h.SuccessBox("great"),
+		"",
+	)
+
+	test.AssetEqual(
+		`<div class="successbox"><script>beware no escaping!</script></div>`,
+		h.SuccessBox("<script>beware no escaping!</script>"),
+		"",
+	)
+}

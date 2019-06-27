@@ -22,7 +22,7 @@ func NewInstance() *GlobalVarConfig {
 	return NewGlobalVarConfig("")
 }
 
- func NewGlobalVarConfig(prefix string) *GlobalVarConfig {
+func NewGlobalVarConfig(prefix string) *GlobalVarConfig {
  	this := new(GlobalVarConfig)
  	if prefix == "" {
  		prefix = "wg"

@@ -86,7 +86,7 @@ func (h *Html) ButtonAttributes(attrs map[string]interface{}, modifiers []string
  * @param array $attrs An attribute array.
  * @return array $attrs A modified attribute array
  */
-func (h *Html) GetTextInputAttributes(attrs map[string]string) map[string]string {
+func (h *Html) GetTextInputAttributes(attrs map[string]interface{}) map[string]interface{} {
 	if !WgUseMediaWikiUIEverywhere {
 		return attrs
 	}
@@ -158,8 +158,13 @@ func (h *Html) RawElement(element string, attribs map[string]interface{}, conten
  * @return string
  */
 func (h *Html) Element(element string, attribs map[string]interface{}, contents string) string {
-	strings.ReplaceAll(contents, "&", "&amp;")
-	strings.ReplaceAll(contents, "<", "&lt;")
+	if attribs == nil {
+		attribs = make(map[string]interface{})
+	}
+	contents = php.Strtr(contents, map[string]string{
+		"&": "&amp;",
+		"<": "&lt;",
+	})
 	return h.RawElement(element, attribs, contents)
 }
 
@@ -175,6 +180,7 @@ func (h *Html) Element(element string, attribs map[string]interface{}, contents 
  * @return string
  */
 func (h *Html) OpenElement(element string, attribs map[string]interface{}) (ret string) {
+
 	// This is not required in HTML5, but let"s do it anyway, for
 	// consistency and better compression.
 	element = strings.ToLower(element)
@@ -206,7 +212,7 @@ func (h *Html) OpenElement(element string, attribs map[string]interface{}) (ret 
 	// According to standard the default type for <button> elements is "submit".
 	// Depending on compatibility mode IE might use "button", instead.
 	// We enforce the standard "submit".
-	if element == "button" && attribs["type"] == "" {
+	if element == "button" && (attribs["type"] == "" || attribs["type"] == nil) {
 		attribs["type"] = "submit"
 	}
 	ret = fmt.Sprintf("<%s%s>", element, h.ExpandAttributes(h.DropDefaults(element, attribs)))
@@ -279,15 +285,15 @@ func (h *Html) DropDefaults(element string, attribs map[string]interface{}) map[
 
 	for attrib, value := range attribs {
 		// 还有数组的情况
-		lcattrib := strings.ToLower(attrib)
+		lcAttrib := strings.ToLower(attrib)
 		// Simple checks using $attribDefaults
 		if v, ok := attribDefaults[element]; ok {
-			if v1, ok := v[lcattrib]; ok && v1 == value {
+			if v1, ok := v[lcAttrib]; ok && v1 == fmt.Sprint(value) {
 				delete(attribs, attrib)
 			}
 		}
 
-		if lcattrib == "class" && value == "" {
+		if lcAttrib == "class" && (value == "" || value == nil) {
 			delete(attribs, attrib)
 		}
 	}
@@ -296,6 +302,7 @@ func (h *Html) DropDefaults(element string, attribs map[string]interface{}) map[
 	if element == "link" && attribs["type"] == "text/css" {
 		delete(attribs, "type")
 	}
+
 	if element == "input" {
 		types := attribs["type"]
 		value := attribs["value"]
@@ -320,24 +327,14 @@ func (h *Html) DropDefaults(element string, attribs map[string]interface{}) map[
 		}
 	}
 	if element == "select" && attribs["size"] != "" {
-		for _, v := range attribs {
-			if "multiple" != v {
-				continue
-			}
+		if attribs["multiple"] != nil && attribs["multiple"] != false {
 			// A multi-select
-			if attribs["size"] == "4" {
-				delete(attribs, "size")
-			}
-			return attribs
-		}
-		if attribs["multiple"] != "" && attribs["multiple"] != "false" {
-			// A multi-select
-			if attribs["size"] == "4" {
+			if attribs["size"] == "4" || attribs["size"] == 4 {
 				delete(attribs, "size")
 			}
 		} else {
 			// Single select
-			if attribs["size"] == "1" {
+			if attribs["size"] == "1" || attribs["size"] == 1 {
 				delete(attribs, "size")
 			}
 		}
@@ -394,6 +391,9 @@ func (h *Html) ExpandAttributes(attribs map[string]interface{}) (ret string) {
 		// For boolean attributes, support [ 'foo' ] instead of
 		// requiring [ 'foo' => 'meaningless' ].
 		// TODO: 这里有key为数字情况的判断
+		//if ( is_int( $key ) && in_array( strtolower( $value ), self::$boolAttribs ) ) {
+		//	$key = $value;
+		//}
 
 		// Not technically required in HTML5 but we'd like consistency
 		// and better compression anyway.
@@ -450,11 +450,16 @@ func (h *Html) ExpandAttributes(attribs map[string]interface{}) (ret string) {
 			panic(fmt.Sprintf("HTML attribute %s can not contain a list of values", key))
 		}
 		quote := `"`
+		exist := false
 		for _, v := range HtmlBoolAttribs {
 			if v == key {
-				ret = fmt.Sprintf("%s %s=\"\"", ret, key)
-				return ret
+				exist = true
+				break
 			}
+		}
+		if exist {
+			ret = fmt.Sprintf("%s %s=\"\"", ret, key)
+			continue
 		}
 		switch value.(type) {
 		case int:
@@ -463,10 +468,441 @@ func (h *Html) ExpandAttributes(attribs map[string]interface{}) (ret string) {
 			valueStr = strconv.FormatFloat(float64(value.(float32)), 'f', -1, 32)
 		case float64:
 			valueStr = strconv.FormatFloat(value.(float64), 'f', -1, 64)
+		case string:
+			valueStr = value.(string)
 		}
+
 		valueStr = html.EscapeString(valueStr)
 		ret = fmt.Sprintf("%s %s=%s%s%s", ret, key, quote, php.EncodeAttribute(valueStr), quote)
 	}
+	return ret
+}
+
+/**
+ * Output an HTML script tag with the given contents.
+ *
+ * It is unsupported for the contents to contain the sequence `<script` or `</script`
+ * (case-insensitive). This ensures the script can be terminated easily and consistently.
+ * It is the responsibility of the caller to avoid such character sequence by escaping
+ * or avoiding it. If found at run-time, the contents are replaced with a comment, and
+ * a warning is logged server-side.
+ *
+ * @param string $contents JavaScript
+ * @param string|null $nonce Nonce for CSP header, from OutputPage::getCSPNonce()
+ * @return string Raw HTML
+ */
+func (h *Html) InlineScript(contents, nonce string) (ret string) {
+	attrs := make(map[string]interface{})
+	if nonce != "" {
+		attrs["nonce"] = nonce
+	} else {
+		//TODO: 省略了  RequestContext::getMain()->getConfig()
+		if IsNonceRequired() {
+			WfWarn("no nonce set on script. CSP will break it")
+		}
+	}
+	// regexp.Match(`^(text|application)/xml$|^.+/.+\+xml$`, []byte(mimetype))
+	if b, err := regexp.Match(`(?i).*</?script.*`, []byte(contents)); b && err == nil {
+		WfLogWarning("Illegal character sequence found in inline script.")
+		contents = `/* ERROR: Invalid script */`
+	}
+	return h.RawElement("script", attrs, contents)
+}
+
+/**
+ * Output a "<script>" tag linking to the given URL, e.g.,
+ * "<script src=foo.js></script>".
+ *
+ * @param string $url
+ * @param string|null $nonce Nonce for CSP header, from OutputPage::getCSPNonce()
+ * @return string Raw HTML
+ */
+func (h *Html) LinkedScript(url, nonce string) (ret string) {
+	attrs := make(map[string]interface{})
+	attrs["src"] = url
+	if nonce != "" {
+		attrs["nonce"] = nonce
+	} else {
+		//TODO: 省略了  RequestContext::getMain()->getConfig()
+		if IsNonceRequired() {
+			WfWarn("no nonce set on script. CSP will break it")
+		}
+	}
+	return h.RawElement("script", attrs, "")
+}
+
+/**
+ * Output a "<style>" tag with the given contents for the given media type
+ * (if any).  TODO: do some useful escaping as well, like if $contents
+ * contains literal "</style>" (admittedly unlikely).
+ *
+ * @param string $contents CSS
+ * @param string $media A media type string, like 'screen'
+ * @param array $attribs (since 1.31) Associative array of attributes, e.g., [
+ *   'href' => 'https://www.mediawiki.org/' ]. See expandAttributes() for
+ *   further documentation.
+ * @return string Raw HTML
+ */
+func (h *Html) InlineStyle(contents, media string, attribs map[string]interface{}) (ret string) {
+	if media == "" {
+		media = "all"
+	}
+	// Don't escape '>' since that is used
+	// as direct child selector.
+	// Remember, in css, there is no "x" for hexadecimal escapes, and
+	// the space immediately after an escape sequence is swallowed.
+	contents = php.Strtr(contents, map[string]string{
+		"<": `\3C `,
+		// CDATA end tag for good measure, but the main security
+		// is from escaping the '<'.
+		"]]>": `\5D\5D\3E `,
+	})
+
+	if b, err := regexp.Match(`.*[<&].*`, []byte(contents)); b && err == nil {
+		contents = fmt.Sprintf("/*<![CDATA[*/%s/*]]>*/", contents)
+	}
+	attribs["media"] = media
+	ret = h.RawElement("style", attribs, contents)
+	return ret
+}
+
+/**
+ * Output a "<link rel=stylesheet>" linking to the given URL for the given
+ * media type (if any).
+ *
+ * @param string $url
+ * @param string $media A media type string, like 'screen'
+ * @return string Raw HTML
+ */
+func (h *Html) LinkedStyle(url, media string) (ret string) {
+	if media == "" {
+		media = "all"
+	}
+	ret = h.Element("link", map[string]interface{}{
+		"rel":   "stylesheet",
+		"href":  url,
+		"media": media,
+	}, "")
+	return ret
+}
+
+/**
+ * Convenience function to produce an "<input>" element.  This supports the
+ * new HTML5 input types and attributes.
+ *
+ * @param string $name Name attribute
+ * @param string $value Value attribute
+ * @param string $type Type attribute
+ * @param array $attribs Associative array of miscellaneous extra
+ *   attributes, passed to Html::element()
+ * @return string Raw HTML
+ */
+func (h *Html) Input(name, value, types string, attribs map[string]interface{}) (ret string) {
+	if types == "" {
+		types = "text"
+	}
+	if attribs == nil {
+		attribs = make(map[string]interface{})
+	}
+	attribs["type"] = types
+	attribs["value"] = value
+	attribs["name"] = name
+	// TODO: use switch structure instead?
+	if php.InArray(types, []string{"text", "search", "email", "password", "number"}) {
+		attribs = h.GetTextInputAttributes(attribs)
+	}
+	if php.InArray(types, []string{"button", "reset", "submit"}) {
+		attribs = h.ButtonAttributes(attribs, []string{})
+	}
+	ret = h.Element("input", attribs, "")
+	return ret
+}
+
+/**
+ * Convenience function to produce a checkbox (input element with type=checkbox)
+ *
+ * @param string $name Name attribute
+ * @param bool $checked Whether the checkbox is checked or not
+ * @param array $attribs Array of additional attributes
+ * @return string Raw HTML
+ */
+func (h *Html) Check(name string, checked bool, attribs map[string]interface{}) (ret string) {
+	// TODO: attribs needs to change map to slice,so attribs can sort
+	var value string
+	if attribs == nil {
+		attribs = make(map[string]interface{})
+	}
+	if attribs["value"] != nil {
+		value = attribs["value"].(string)
+	} else {
+		value = "1"
+	}
+
+	if checked {
+		attribs["checked"] = "checked"
+	}
+	ret = h.Input(name, value, "checkbox", attribs)
+	return ret
+}
+
+/**
+ * Return a warning box.
+ * @since 1.31
+ * @param string $html of contents of box
+ * @return string of HTML representing a warning box.
+ */
+func (h *Html) MessageBox(html, className, heading string) (ret string) {
+	if heading != "" {
+		html = h.Element("h2", nil, heading) + html
+	}
+	ret = h.RawElement("div", map[string]interface{}{
+		"class": className,
+	}, html)
+	return ret
+}
+
+/**
+ * Return a warning box.
+ * @since 1.31
+ * @param string $html of contents of box
+ * @return string of HTML representing a warning box.
+ */
+func (h *Html) WarningBox(html string) (ret string) {
+	ret = h.MessageBox(html, "warningbox", "")
+	return ret
+}
+
+/**
+ * Return an error box.
+ * @since 1.31
+ * @param string $html of contents of error box
+ * @param string $heading (optional)
+ * @return string of HTML representing an error box.
+ */
+func (h *Html) ErrorBox(html, heading string) (ret string) {
+	ret = h.MessageBox(html, "errorbox", heading)
+	return ret
+}
+
+/**
+ * Return a success box.
+ * @since 1.31
+ * @param string $html of contents of box
+ * @return string of HTML representing a success box.
+ */
+func (h *Html) SuccessBox(html string) (ret string) {
+	ret = h.MessageBox(html, "successbox", "")
+	return ret
+}
+
+/**
+ * Convenience function to produce a radio button (input element with type=radio)
+ *
+ * @param string $name Name attribute
+ * @param bool $checked Whether the radio button is checked or not
+ * @param array $attribs Array of additional attributes
+ * @return string Raw HTML
+ */
+func (h *Html) Radio(name string, checked bool, attribs map[string]interface{}) (ret string) {
+	var value string
+	if attribs == nil {
+		attribs = make(map[string]interface{})
+	}
+	if attribs["value"] != nil {
+		value = attribs["value"].(string)
+	} else {
+		value = "1"
+	}
+
+	if checked {
+		attribs["checked"] = "checked"
+	}
+	ret = h.Input(name, value, "radio", attribs)
+	return ret
+}
+
+/**
+ * Convenience function for generating a label for inputs.
+ *
+ * @param string $label Contents of the label
+ * @param string $id ID of the element being labeled
+ * @param array $attribs Additional attributes
+ * @return string Raw HTML
+ */
+func (h *Html) Label(label, id string, attribs map[string]interface{}) (ret string) {
+	if attribs == nil {
+		attribs = make(map[string]interface{})
+	}
+	attribs["for"] = id
+	ret = h.Element("label", attribs, label)
+	return ret
+}
+
+/**
+ * Convenience function to produce an input element with type=hidden
+ *
+ * @param string $name Name attribute
+ * @param string $value Value attribute
+ * @param array $attribs Associative array of miscellaneous extra
+ *   attributes, passed to Html::element()
+ * @return string Raw HTML
+ */
+func (h *Html) Hidden(name, value string, attribs map[string]interface{}) (ret string) {
+	if attribs == nil {
+		attribs = make(map[string]interface{})
+	}
+	ret = h.Input(name, value, "hidden", attribs)
+	return ret
+}
+
+/**
+ * Convenience function to produce a <textarea> element.
+ *
+ * This supports leaving out the cols= and rows= which Xml requires and are
+ * required by HTML4/XHTML but not required by HTML5.
+ *
+ * @param string $name Name attribute
+ * @param string $value Value attribute
+ * @param array $attribs Associative array of miscellaneous extra
+ *   attributes, passed to Html::element()
+ * @return string Raw HTML
+ */
+func (h *Html) Textarea(name, value string, attribs map[string]interface{}) (ret string) {
+	if attribs == nil {
+		attribs = make(map[string]interface{})
+	}
+	attribs["name"] = name
+	var spacedValue string
+	if value[0:1] == "\n" {
+		// Workaround for T14130: browsers eat the initial newline
+		// assuming that it's just for show, but they do keep the later
+		// newlines, which we may want to preserve during editing.
+		// Prepending a single newline
+		spacedValue = "\n" + value
+	} else {
+		spacedValue = value
+	}
+	ret = h.Element("textarea", h.GetTextInputAttributes(attribs), spacedValue)
+	return ret
+}
+
+/**
+ * Helper for Html::namespaceSelector().
+ * @param array $params See Html::namespaceSelector()
+ * @return array
+ */
+func (h *Html) NamespaceSelectorOptions(params map[string]interface{}) (ret string) {
+	options := make(map[string]string)
+
+	if params["exclude"] == nil || reflect.ValueOf(params["disable"]).Kind() != reflect.Slice {
+		params["exclude"] = []string{}
+	}
+
+	if params["all"] != nil {
+		// add an option that would let the user select all namespaces.
+		// Value is provided by user, the name shown is localized for the user.
+		//TODO： 完全
+		options[params["all"].(string)] = ""
+
+	}
+	//// Add all namespaces as options (in the content language)
+	//$options +=
+	//MediaWikiServices::getInstance()->getContentLanguage()->getFormattedNamespaces();
+	//
+	//$optionsOut = [];
+	//// Filter out namespaces below 0 and massage labels
+	//foreach ( $options as $nsId => $nsName ) {
+	//if ( $nsId < NS_MAIN || in_array( $nsId, $params['exclude'] ) ) {
+	//continue;
+	//}
+	//if ( $nsId === NS_MAIN ) {
+	//// For other namespaces use the namespace prefix as label, but for
+	//// main we don't use "" but the user message describing it (e.g. "(Main)" or "(Article)")
+	//$nsName = wfMessage( 'blanknamespace' )->text();
+	//} elseif ( is_int( $nsId ) ) {
+	//$nsName = MediaWikiServices::getInstance()->getContentLanguage()->
+	//convertNamespace( $nsId );
+	//}
+	//$optionsOut[$nsId] = $nsName;
+	//}
+
+	return ret
+}
+/**
+ * Build a drop-down box for selecting a namespace
+ *
+ * @param array $params Params to set.
+ * - selected: [optional] Id of namespace which should be pre-selected
+ * - all: [optional] Value of item for "all namespaces". If null or unset,
+ *   no "<option>" is generated to select all namespaces.
+ * - label: text for label to add before the field.
+ * - exclude: [optional] Array of namespace ids to exclude.
+ * - disable: [optional] Array of namespace ids for which the option should
+ *   be disabled in the selector.
+ * @param array $selectAttribs HTML attributes for the generated select element.
+ * - id:   [optional], default: 'namespace'.
+ * - name: [optional], default: 'namespace'.
+ * @return string HTML code to select a namespace.
+ */
+func (h *Html) NamespaceSelector(params map[string]interface{}, selectAttribs map[string]interface{}) (ret string) {
+	//selectAttribsArr := php.Ksort(selectAttribs)
+
+	// Is a namespace selected?
+	if params["selected"] != nil {
+		// If string only contains digits, convert to clean int. Selected could also
+		// be "all" or "" etc. which needs to be left untouched.
+		// PHP is_numeric() has issues with large strings, PHP ctype_digit has other issues
+		// and returns false for already clean ints. Use regex instead..
+
+		// else: leaves it untouched for later processing
+	} else {
+		params["selected"] = ""
+	}
+
+	if params["disable"] == nil || reflect.ValueOf(params["disable"]).Kind() != reflect.Slice {
+		params["disable"] = []string{}
+	}
+
+	// Associative array between option-values and option-labels
+	//options := h.NamespaceSelectorOptions(params)
+
+	//// Convert $options to HTML
+	//$optionsHtml = [];
+	//foreach ( $options as $nsId => $nsName ) {
+	//$optionsHtml[] = self::element(
+	//'option', [
+	//'disabled' => in_array( $nsId, $params['disable'] ),
+	//'value' => $nsId,
+	//'selected' => $nsId === $params['selected'],
+	//], $nsName
+	//);
+	//}
+	//
+	//if ( !array_key_exists( 'id', $selectAttribs ) ) {
+	//$selectAttribs['id'] = 'namespace';
+	//}
+	//
+	//if ( !array_key_exists( 'name', $selectAttribs ) ) {
+	//$selectAttribs['name'] = 'namespace';
+	//}
+	//
+	//$ret = '';
+	//if ( isset( $params['label'] ) ) {
+	//$ret .= self::element(
+	//'label', [
+	//'for' => $selectAttribs['id'] ?? null,
+	//], $params['label']
+	//) . "\u{00A0}";
+	//}
+	//
+	//// Wrap options in a <select>
+	//$ret .= self::openElement( 'select', $selectAttribs )
+	//. "\n"
+	//. implode( "\n", $optionsHtml )
+	//. "\n"
+	//. self::closeElement( 'select' );
+	//
+	//return $ret;
 	return ret
 }
 
