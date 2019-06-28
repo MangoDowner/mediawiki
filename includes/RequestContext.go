@@ -1,8 +1,10 @@
 package includes
 
 import (
+	"fmt"
 	"github.com/MangoDowner/mediawiki/includes/languages"
 	"github.com/MangoDowner/mediawiki/includes/setup"
+	"github.com/astaxie/beego/logs"
 )
 
 /**
@@ -32,7 +34,7 @@ type RequestContext struct {
 	/**
 	 * @var User
 	 */
-	 user interface{}
+	user interface{}
 
 	/**
 	 * @var Language
@@ -119,14 +121,20 @@ func (m *RequestContext) GetTiming() interface{} {
  * @param Title|null $title
  */
 func (m *RequestContext) SetTitle(title interface{}) {
-	//TODO
+	m.title = title
+	// Erase the WikiPage so a new one with the new title gets created.
+	m.wikipage = nil
 }
 
 /**
  * @return Title|null
  */
 func (m *RequestContext) GetTitle() interface{} {
-	//TODO
+	if m.title != "" {
+		return m.title
+	}
+	m.title = WgTitle
+	logs.Debug(fmt.Sprintf("GlobalTitleFail %s called by with no title set", "__METHOD__",))
 	return m.title
 }
 

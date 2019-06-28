@@ -51,10 +51,11 @@ func (m *MediaWiki) Run() {
 }
 
 func (m *MediaWiki) main() error {
-	requests := m.context.GetRequest()
-	// Send Ajax requests to the Ajax dispatcher.
-	if requests.GetVal("action", "") == "ajax" {
-
-	}
+	//TODO: 路由处理统一放在routers
+	//requests := m.context.GetRequest()
+	//// Send Ajax requests to the Ajax dispatcher.
+	//if requests.GetVal("action", "") == "ajax" {
+	//
+	//}
 	return nil
 }

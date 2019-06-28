@@ -1,26 +1,35 @@
 package config
-/**
- * Interface for configuration instances
- *
- * @since 1.23
- */
 
-type Config interface {
-	/**
-	 * Get a configuration variable such as "Sitename" or "UploadMaintenance."
-	 *
-	 * @param string $name Name of configuration option
-	 * @return mixed Value configured
-	 * @throws ConfigException
-	 */
-	 Get( name string ) interface{}
+import (
+	"fmt"
+	"github.com/astaxie/beego/config"
+)
 
-	/**
-	* Check whether a configuration option is set for the given name
-	*
-	* @param string $name Name of configuration option
-	* @return bool
-	* @since 1.24
-	*/
-	Has( name string ) bool
+
+type Config struct {
+	IniConfig config.Configer
 }
+
+func NewConfig() *Config {
+	this := new(Config)
+	iniConfig, err := config.NewConfig("ini", "conf/app.conf")
+	if err != nil {
+		panic(fmt.Sprintf("fail to load conf file : %s", err))
+	}
+	this.IniConfig = iniConfig
+	return this
+}
+
+func (c *Config) Get(key string) interface{} {
+	return c.IniConfig.String(key)
+}
+
+func (c *Config) GetList(key string) []string {
+	return c.IniConfig.Strings(key)
+}
+
+
+func (c *Config) Has(key string) bool {
+	return true
+}
+

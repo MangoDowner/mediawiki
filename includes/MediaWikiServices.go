@@ -70,7 +70,7 @@ func (m *MediaWikiServices) getInstance() interface{} {
  * @throws MWException
  * @throws \FatalError
  */
-func (m *MediaWikiServices) newInstance( bootstrapConfig config.Config, loadWiring string) *MediaWikiServices {
+func (m *MediaWikiServices) newInstance( bootstrapConfig config.IConfig, loadWiring string) *MediaWikiServices {
 	instance := NewMediaWikiServices(bootstrapConfig)
 	// Load the default wiring from the specified files.
 	if loadWiring == "load"  {
@@ -88,7 +88,7 @@ func (m *MediaWikiServices) newInstance( bootstrapConfig config.Config, loadWiri
  *        This has to contain at least the information needed to set up the 'ConfigFactory'
  *        service.
  */
-func NewMediaWikiServices(config config.Config) *MediaWikiServices {
+func NewMediaWikiServices(config config.IConfig) *MediaWikiServices {
 	this := new(MediaWikiServices)
 	// Register the given Config object as the bootstrap config service.
 	this.DefineService( "BootstrapConfig",

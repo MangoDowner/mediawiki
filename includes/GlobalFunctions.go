@@ -1,7 +1,10 @@
 package includes
 
 import (
+	"fmt"
+	"github.com/MangoDowner/mediawiki/includes/libs"
 	"github.com/MangoDowner/mediawiki/includes/php"
+	"github.com/astaxie/beego/context"
 	"go-common/library/log"
 )
 
@@ -108,4 +111,41 @@ func WfWarn(msg string) {
  */
 func WfLogWarning(msg string) {
 	log.Error(msg)
+}
+
+/**
+ * Provide a simple HTTP error.
+ *
+ * @param int|string $code
+ * @param string $label
+ * @param string $desc
+ */
+func WfHttpError(ctx *context.Context, code int, label, desc string) error {
+	ctx.ResponseWriter.Header().Set("Content-type", "text/html")
+	ctx.ResponseWriter.Header().Set("charset", "utf-8")
+	// TODO
+	libs.NewHttpStatus().Header(ctx, code)
+	NewHeaderCallback().WarnIfHeadersSent()
+	content := fmt.Sprintf(
+		"<!DOCTYPE html><html><head><title>%s</title></head><body><h1>%s</h1><p>%s</p></body></html>\n",
+		php.Htmlspecialchars(label),
+		php.Htmlspecialchars(label),
+		php.Htmlspecialchars(desc),
+	)
+	 _, err := ctx.ResponseWriter.Write([]byte(content))
+	return err
+}
+
+/**
+ * Get the name of the function which called this function
+ * wfGetCaller( 1 ) is the function with the wfGetCaller() call (ie. __FUNCTION__)
+ * wfGetCaller( 2 ) [default] is the caller of the function running wfGetCaller()
+ * wfGetCaller( 3 ) is the parent of that.
+ *
+ * @param int $level
+ * @return string
+ */
+func WfGetCaller(level int) string {
+	//TODO
+	return "unknown"
 }
