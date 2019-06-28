@@ -4,7 +4,7 @@
 package includes
 
 import (
-	"github.com/MangoDowner/mediawiki/php"
+	"github.com/MangoDowner/mediawiki/includes/php"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
 	"reflect"

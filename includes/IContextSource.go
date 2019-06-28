@@ -1,6 +1,8 @@
-package context
+package includes
 
-import "github.com/MangoDowner/mediawiki/includes/languages"
+import (
+	"github.com/MangoDowner/mediawiki/includes/languages"
+)
 
 /**
  * Interface for objects which can provide a MediaWiki context on request
@@ -37,12 +39,12 @@ type IContextSource interface {
 	/**
 	 * @return WebRequest
 	 */
-	GetRequest()
+	GetRequest() *WebRequest
 
 	/**
 	 * @return Title|null
 	 */
-	GetTitle()
+	GetTitle() interface{}
 
 	/**
 	 * Check whether a WikiPage object can be get with getWikiPage().
@@ -63,28 +65,28 @@ type IContextSource interface {
 	 * @since 1.19
 	 * @return WikiPage
 	 */
-	GetWikiPage()
+	GetWikiPage(interface{}) interface{}
 
 	/**
 	 * @return OutputPage
 	 */
-	GetOutput()
+	GetOutput() interface{}
 
 	/**
 	 * @return User
 	 */
-	GetUser()
+	GetUser() interface{}
 
 	/**
 	 * @return Language
 	 * @since 1.19
 	 */
-	GetLanguage()
+	GetLanguage() *languages.Language
 
 	/**
 	 * @return Skin
 	 */
-	GetSkin()
+	GetSkin() interface{}
 
 	/**
 	 * Get the site configuration
@@ -92,7 +94,7 @@ type IContextSource interface {
 	 * @since 1.23
 	 * @return Config
 	 */
-	GetConfig()
+	GetConfig() interface{}
 
 	/**
 	 * @deprecated since 1.27 use a StatsdDataFactory from MediaWikiServices (preferably injected)
@@ -100,13 +102,13 @@ type IContextSource interface {
 	 * @since 1.25
 	 * @return IBufferingStatsdDataFactory
 	 */
-	GetStats()
+	GetStats() interface{}
 
 	/**
 	 * @since 1.27
 	 * @return Timing
 	 */
-	GetTiming()
+	GetTiming() interface{}
 
 	/**
 	 * Export the resolved user IP, HTTP headers, user ID, and session ID.
@@ -115,7 +117,7 @@ type IContextSource interface {
 	 * @return array
 	 * @since 1.21
 	 */
-	ExportSession()
+	ExportSession() interface{}
 
 	languages.MessageLocalizer
 }

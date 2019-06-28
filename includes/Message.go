@@ -1,7 +1,6 @@
 package includes
 
 import (
-	"github.com/MangoDowner/mediawiki/includes/context"
 	"github.com/MangoDowner/mediawiki/includes/languages"
 	"github.com/MangoDowner/mediawiki/includes/libs"
 	"reflect"
@@ -276,7 +275,7 @@ func (m *Message) GetLanguage() *languages.Language {
 		return m.language
 	}
 	// Defaults to false which means current user language
-	return context.NewRequestContext().GetMain().GetLanguage()
+	return NewRequestContext().GetMain().GetLanguage()
 }
 
 /**

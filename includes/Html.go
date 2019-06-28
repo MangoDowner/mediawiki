@@ -5,7 +5,7 @@ package includes
 
 import (
 	"fmt"
-	"github.com/MangoDowner/mediawiki/php"
+	"github.com/MangoDowner/mediawiki/includes/php"
 	"html"
 	"reflect"
 	"regexp"

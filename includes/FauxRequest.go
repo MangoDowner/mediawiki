@@ -3,7 +3,7 @@
  */
 package includes
 
-import "github.com/MangoDowner/mediawiki/php"
+import "github.com/MangoDowner/mediawiki/includes/php"
 
 /**
  * WebRequest clone which takes values from a provided array.

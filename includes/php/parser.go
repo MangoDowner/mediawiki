@@ -1,6 +1,8 @@
 package php
 
-import "html"
+import (
+	"html"
+)
 
 /**
  * Encode an attribute value for HTML output.
