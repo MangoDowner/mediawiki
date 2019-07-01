@@ -16,8 +16,9 @@ func (c *AjaxController) Ajax() {
 	title := includes.NewTitle().MakeTitle(consts.NS_SPECIAL,
 		fmt.Sprintf("Badtitle/performing an AJAX call in __METHOD__"), "", "")
 	c.SetTitle(title)
-	dispatcher := NewAjaxDispatcher(c.Ctx, nil)
+	dispatcher := NewAjaxDispatcher(&c.Controller, nil)
 	dispatcher.performAction(nil)
+
 	c.Data["Website"] = c.GetTitle()
 	c.TplName = "index.tpl"
 	return
