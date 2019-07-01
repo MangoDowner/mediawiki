@@ -21,6 +21,14 @@ func (c *MainController) Main() {
 		dispatcher.performAction(nil)
 		return
 	}
+
+	// Get title from request parameters,
+	// is set on the fly by parseTitle the first time.
+	title := c.GetTitle()
+	action := c.GetAction()
+	fmt.Println("TITLE:", title)
+	fmt.Println("ACTION:", action)
+
 	c.Data["Website"] = "beego.me"
 	c.Data["Email"] = "astaxie@gmail.com"
 	c.TplName = "index.tpl"
