@@ -19,7 +19,7 @@ type RequestContext struct {
 	/**
 	 * @var Title
 	 */
-	title interface{}
+	title *Title
 
 	/**
 	 * @var WikiPage
@@ -29,7 +29,7 @@ type RequestContext struct {
 	/**
 	 * @var OutputPage
 	 */
-	output interface{}
+	output *OutputPage
 
 	/**
 	 * @var User
@@ -120,7 +120,7 @@ func (m *RequestContext) GetTiming() interface{} {
 /**
  * @param Title|null $title
  */
-func (m *RequestContext) SetTitle(title interface{}) {
+func (m *RequestContext) SetTitle(title *Title) {
 	m.title = title
 	// Erase the WikiPage so a new one with the new title gets created.
 	m.wikipage = nil
@@ -129,13 +129,23 @@ func (m *RequestContext) SetTitle(title interface{}) {
 /**
  * @return Title|null
  */
-func (m *RequestContext) GetTitle() interface{} {
-	if m.title != "" {
+func (m *RequestContext) GetTitle() *Title {
+	if m.title != nil {
 		return m.title
 	}
 	m.title = WgTitle
 	logs.Debug(fmt.Sprintf("GlobalTitleFail %s called by with no title set", "__METHOD__",))
 	return m.title
+}
+
+/**
+ * Check, if a Title object is set
+ *
+ * @since 1.25
+ * @return bool
+ */
+func (m *RequestContext) HasTitle() bool {
+	return m.title != nil
 }
 
 /**
@@ -188,9 +198,12 @@ func (m *RequestContext) SetOutput(output interface{}) {
 /**
  * @param OutputPage $output
  */
-func (m *RequestContext) GetOutput() interface{} {
-	//TODO
-	return m.output
+func (r *RequestContext) GetOutput() *OutputPage {
+	if r.output == nil {
+		//TODO:
+		r.output = NewOutputPage()
+	}
+	return r.output
 }
 
 /**
@@ -215,12 +228,12 @@ func (m *RequestContext) GetUser() interface{} {
  * @throws Exception
  * @since 1.19
  */
-func (m *RequestContext) GetLanguage() *languages.Language {
-	if m.lang != nil {
-		return m.lang
+func (r *RequestContext) GetLanguage() *languages.Language {
+	if r.lang != nil {
+		return r.lang
 	}
 	// TODO: 缺失代码
-	return m.lang
+	return r.lang
 }
 
 /**
@@ -257,12 +270,13 @@ func (m *RequestContext) Msg(key ...string) languages.IMessage {
  *
  * @return RequestContext
  */
-func (m *RequestContext) GetMain() *RequestContext {
+func (m *RequestContext) GetMain() *IContextSource {
 	// TODO: 改为获取instance?
 	if m.instance == nil {
 		m.instance = new(RequestContext)
 	}
-	return m.instance
+	//return m.instance
+	return nil
 }
 
 /**

@@ -24,6 +24,10 @@ func (c *Config) Get(key string) interface{} {
 	return c.IniConfig.String(key)
 }
 
+func (c *Config) GetString(key string) string {
+	return c.IniConfig.String(key)
+}
+
 func (c *Config) GetBool(key string) bool {
 	b, _ := c.IniConfig.Bool(key)
 	return b

@@ -3,7 +3,12 @@
  */
 package includes
 
-import "github.com/MangoDowner/mediawiki/includes/php"
+import (
+	"github.com/MangoDowner/mediawiki/includes/consts"
+	"github.com/MangoDowner/mediawiki/includes/linker"
+	"github.com/MangoDowner/mediawiki/includes/php"
+	"github.com/MangoDowner/mediawiki/includes/title"
+)
 
 /**
  * Represents a title within MediaWiki.
@@ -161,6 +166,37 @@ func NewTitle() *Title {
 	this := new(Title)
 	return this
 }
+
+/**
+ * Create a new Title from a TitleValue
+ *
+ * @param TitleValue $titleValue Assumed to be safe.
+ *
+ * @return Title
+ */
+func (t *Title) NewFromTitleValue(titleValue *title.TitleValue) *Title {
+	return t.NewFromLinkTarget(titleValue)
+}
+
+/**
+ * Create a new Title from a TitleValue
+ *
+ * @param TitleValue $titleValue Assumed to be safe.
+ *
+ * @return Title
+ */
+func (t *Title) NewFromLinkTarget(linkTarget linker.LinkTarget) *Title {
+	// Special case i
+	// f it's already a Title object
+	// TODO
+	return t.MakeTitle(
+		linkTarget.GetNamespace(),
+		linkTarget.GetText(),
+		linkTarget.GetFragment(),
+		linkTarget.GetInterwiki(),
+	)
+}
+
 /**
  * Create a new Title from a namespace index and a DB key.
  *
@@ -197,4 +233,13 @@ func (t *Title) MakeTitle(ns int, title, fragment, interwiki string) *Title {
 	t.MTextform = php.Strtr(title, map[string]string{"_" : " "})
 	t.mContentModel = "" // initialized lazily in getContentModel()
 	return t
+}
+
+/**
+ * Is this in a namespace that allows actual pages?
+ *
+ * @return bool
+ */
+func (t *Title) CanExist() bool {
+	return t.MNamespace >= consts.NS_MAIN
 }

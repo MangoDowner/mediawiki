@@ -275,7 +275,8 @@ func (m *Message) GetLanguage() *languages.Language {
 		return m.language
 	}
 	// Defaults to false which means current user language
-	return NewRequestContext().GetMain().GetLanguage()
+	//return NewRequestContext().GetMain().GetLanguage()
+	return nil
 }
 
 /**

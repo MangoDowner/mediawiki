@@ -1,6 +1,7 @@
 package includes
 
 import (
+	"fmt"
 	"github.com/MangoDowner/mediawiki/globals"
 	"github.com/MangoDowner/mediawiki/includes/exception"
 	"reflect"
@@ -177,6 +178,8 @@ func (h *Hooks) callHook(event string, hook interface{}, args []MediaWikiService
  *   returning null) is equivalent to returning true.
  */
 func (h *Hooks) Run(event string, args []MediaWikiServices, deprecatedVersion string) bool {
+	fmt.Println("RUN")
+	fmt.Println(h.GetHandlers(event))
 	for _, hook := range h.GetHandlers(event) {
 		retval := h.callHook(event, hook, args, deprecatedVersion, nil)
 		if retval == nil {

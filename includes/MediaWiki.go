@@ -14,7 +14,7 @@ type MediaWiki struct {
 	/**
 	 * @var IContextSource
 	 */
-	context IContextSource
+	context *IContextSource
 
 	/**
 	 * @var Config
@@ -27,7 +27,7 @@ type MediaWiki struct {
 	action string
 }
 
-func NewMediaWiki(cs IContextSource) *MediaWiki {
+func NewMediaWiki(cs *IContextSource) *MediaWiki {
 	this := new(MediaWiki)
 	if cs == nil {
 		cs = NewRequestContext().GetMain()
@@ -37,7 +37,6 @@ func NewMediaWiki(cs IContextSource) *MediaWiki {
 	this.config = nil
 	return this
 }
-
 
 /**
  * Run the current MediaWiki instance; index.php just calls this

@@ -190,3 +190,19 @@ func (w *WebRequest) GetFuzzyBool( name string, defaultVal bool ) bool {
 	return b && b1
 }
 
+/**
+ * Return true if the named value is set in the input, whatever that
+ * value is (even "0"). Return false if the named value is not set.
+ * Example use is checking for the presence of check boxes in forms.
+ *
+ * @param string $name
+ * @return bool
+ */
+func (w *WebRequest) GetCheck( name string) bool {
+	// Checkboxes and buttons are only present when clicked
+	// Presence connotes truth, absence false
+	return w.GetRawVal(name, nil) != nil
+}
+
+
+

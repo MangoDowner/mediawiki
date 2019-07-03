@@ -28,6 +28,25 @@ func (c *MainController) Main() {
 	action := c.GetAction()
 	fmt.Println("TITLE:", title)
 	fmt.Println("ACTION:", action)
+	//TODO:
+
+	// If the user has forceHTTPS set to true, or if the user
+	// is in a group requiring HTTPS, or if they have the HTTPS
+	// preference set, redirect them to HTTPS.
+	// Note: Do this after $wgTitle is setup, otherwise the hooks run from
+	// isLoggedIn() will do all sorts of weird stuff.
+	if false {
+		// TODO 转向HTTPS
+		return
+	}
+
+	// TODO 缓存
+	if title.CanExist() && false {
+
+	}
+
+	// Actually do the work of the request and build up any output
+	c.performRequest()
 
 	c.Data["Website"] = "beego.me"
 	c.Data["Email"] = "astaxie@gmail.com"

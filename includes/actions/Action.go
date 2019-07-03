@@ -67,3 +67,21 @@ func (a *Action) GetActionName(c beego.Controller) (actionName string) {
 	return actionName
 	return "nosuchaction"
 }
+
+/**
+ * Set output headers for noindexing etc.  This function will not be called through
+ * the execute() entry point, so only put UI-related stuff in here.
+ * @since 1.17
+ */
+func (a *Action) GetOutput(c beego.Controller) string {
+	//TODO
+	return ""
+}
+
+/**
+ * Set output headers for noindexing etc.  This function will not be called through
+ * the execute() entry point, so only put UI-related stuff in here.
+ * @since 1.17
+ */
+func (a *Action) SetHeaders(c beego.Controller) {
+}
