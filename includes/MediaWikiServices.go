@@ -79,7 +79,7 @@ func (m *MediaWikiServices) newInstance( bootstrapConfig config.IConfig, loadWir
 	}
 
 	// Provide a traditional hook point to allow extensions to configure services.
-	NewHooks().Run("MediaWikiServices", []MediaWikiServices{*instance}, "")
+	NewHooks().Run("MediaWikiServices", []interface{}{*instance}, "")
 	return instance
 }
 

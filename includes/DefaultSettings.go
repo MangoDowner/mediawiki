@@ -15,6 +15,45 @@ var (
 	WgUseMediaWikiUIEverywhere = false
 
 	/**
+	 * Global list of hooks.
+	 *
+	 * The key is one of the events made available by MediaWiki, you can find
+	 * a description for most of them in docs/hooks.txt. The array is used
+	 * internally by Hook:run().
+	 *
+	 * The value can be one of:
+	 *
+	 * - A function name:
+	 * @code
+	 *     $wgHooks['event_name'][] = $function;
+	 * @endcode
+	 * - A function with some data:
+	 * @code
+	 *     $wgHooks['event_name'][] = [ $function, $data ];
+	 * @endcode
+	 * - A an object method:
+	 * @code
+	 *     $wgHooks['event_name'][] = [ $object, 'method' ];
+	 * @endcode
+	 * - A closure:
+	 * @code
+	 *     $wgHooks['event_name'][] = function ( $hookParam ) {
+	 *         // Handler code goes here.
+	 *     };
+	 * @endcode
+	 *
+	 * @warning You should always append to an event array or you will end up
+	 * deleting a previous registered hook.
+	 *
+	 * @warning Hook handlers should be registered at file scope. Registering
+	 * handlers after file scope can lead to unexpected results due to caching.
+	 */
+	WgHooks = map[string][]func()error{}
+
+
+
+
+	/**
 	 * Array of allowed values for the "title=foo&action=<action>" parameter. Syntax is:
 	 *     "foo" : "ClassName"    Load the specified class which subclasses Action
 	 *     "foo" : true           Load the class FooAction which subclasses Action

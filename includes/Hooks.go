@@ -1,15 +1,19 @@
 package includes
 
 import (
+	"errors"
 	"fmt"
 	"github.com/MangoDowner/mediawiki/globals"
 	"github.com/MangoDowner/mediawiki/includes/exception"
-	"reflect"
+	"github.com/astaxie/beego/logs"
 )
 
 /**
  * A tool for running hook functions.
  */
+
+// Hook function to run
+type HookFunc func() error
 
 /**
 * Hooks class.
@@ -23,13 +27,14 @@ type Hooks struct {
 	 * Array of events mapped to an array of callbacks to be run
 	 * when that event is triggered.
 	 */
-	 handlers map[string][]func()
+	 handlers map[string][]HookFunc
 }
 
-var wgHooks map[string][]func()
+var wgHooks map[string][]HookFunc
 
 func NewHooks() *Hooks {
 	this := new(Hooks)
+	this.handlers = make(map[string][]HookFunc)
 	return this
 }
 
@@ -42,8 +47,8 @@ func NewHooks() *Hooks {
  *
  * @since 1.18
  */
- func (h *Hooks) register(name string, callback []func()) {
- 	h.handlers[name] = callback
+ func (h *Hooks) register(name string, callback func()error) {
+ 	h.handlers[name] = append(h.handlers[name], callback)
  }
 
 /**
@@ -75,7 +80,7 @@ func (h *Hooks) clear(name string) {
 func (h *Hooks) IsRegistered(name string) bool {
 	_, ok := wgHooks[name]
 	_, ok1 := h.handlers[name]
-	return !ok || !ok1
+	return ok || ok1
 }
 
 /**
@@ -87,8 +92,8 @@ func (h *Hooks) IsRegistered(name string) bool {
  * @param string $name Name of the hook
  * @return array
  */
-func (h *Hooks) GetHandlers(name string) (result []func()) {
-	if h.IsRegistered(name) {
+func (h *Hooks) GetHandlers(name string) (result []HookFunc) {
+	if !h.IsRegistered(name) {
 		return result
 	}
 	if _, ok := h.handlers[name]; !ok {
@@ -114,43 +119,46 @@ func (h *Hooks) GetHandlers(name string) (result []func()) {
  * @param string &$fname [optional] Readable name of hook [returned]
  * @return null|string|bool
  */
-func (h *Hooks) callHook(event string, hook interface{}, args []MediaWikiServices,
-	deprecatedVersion string, fname *string) interface{} {
-	var hookFunc []interface{}
+func (h *Hooks) callHook(event string, hook HookFunc, args []interface{},
+	deprecatedVersion string, fname *string) (ret interface{}, err error) {
+	if hook == nil {
+		return
+	}
+	var hookArr []HookFunc
 	// Turn non-array values into an array. (Can't use casting because of objects.)
-	if reflect.ValueOf(hook).Kind() != reflect.Array {
-		hookFunc = append(hookFunc, hook.(interface{}))
-	} else {
-		hookFunc = hook.([]interface{})
-	}
-	// Either array is empty or it's an array filled with null/false/empty.
-	if len(hookFunc) == 0 {
-		return nil
-	}
-	empty := true
-	for _, v := range hookFunc {
-		if v != nil {
-			empty = false
-			break
-		}
-	}
-	if empty {
-		return nil
+	hookArr = append(hookArr, hook)
+
+	//if reflect.ValueOf(hookArr[0]).Kind() == reflect.Array {
+	//	// First element is an array, meaning the developer intended
+	//	// the first element to be a callback. Merge it in so that
+	//	// processing can be uniform.
+	//	first := hookArr[0].([]func())
+	//	hookArr = hookArr[1:]
+	//	for _, v := range first {
+	//		hookArr = append(hookArr, v)
+	//	}
+	//}
+
+	// Run autoloader (workaround for call_user_func_array bug)
+	// and throw error if not callable.
+	// TODO 判断callback是否可以执行
+	if false {
+		return nil, errors.New(fmt.Sprintf("Invalid callback %s in hooks for %s", *fname, event))
 	}
 
-	if reflect.ValueOf(hookFunc[0]).Kind() == reflect.Array {
-		// First element is an array, meaning the developer intended
-		// the first element to be a callback. Merge it in so that
-		// processing can be uniform.
-		first := hookFunc[0].([]func())
-		hookFunc = hookFunc[1:]
-		for _, v := range first {
-			hookFunc = append(hookFunc, v)
-		}
+	// mark hook as deprecated, if deprecation version is specified
+	if deprecatedVersion != "" {
+		WfDeprecated(fmt.Sprintf("%s hook (used in %s)", event, *fname),
+			deprecatedVersion, "", 0)
 	}
-	return func() {
 
+	// Run autoloader (workaround for call_user_func_array bug)
+	// and throw error if not callable.
+	err = hook()
+	if err != nil {
+		logs.Error("Invalid callback %s in hooks for %s", *fname, event)
 	}
+	return
 }
 
 
@@ -177,12 +185,11 @@ func (h *Hooks) callHook(event string, hook interface{}, args []MediaWikiService
  *   processing to continue. Not returning a value (or explicitly
  *   returning null) is equivalent to returning true.
  */
-func (h *Hooks) Run(event string, args []MediaWikiServices, deprecatedVersion string) bool {
-	fmt.Println("RUN")
-	fmt.Println(h.GetHandlers(event))
+func (h *Hooks) Run(event string, args []interface{}, deprecatedVersion string) bool {
+	fmt.Println("RUN", h.GetHandlers(event))
 	for _, hook := range h.GetHandlers(event) {
-		retval := h.callHook(event, hook, args, deprecatedVersion, nil)
-		if retval == nil {
+		retval, err := h.callHook(event, hook, args, deprecatedVersion, nil)
+		if err != nil || retval == nil {
 			continue
 		}
 		// Process the return value.
@@ -190,6 +197,37 @@ func (h *Hooks) Run(event string, args []MediaWikiServices, deprecatedVersion st
 			// String returned means error.
 			panic(exception.NewFatalError(s))
 		} else if b, ok := retval.(bool); ok && b == false {
+			// False was returned. Stop processing, but no error.
+			return false
+		}
+	}
+	return true
+}
+
+/**
+ * Call hook functions defined in Hooks::register and $wgHooks.
+ *
+ * @param string $event Event name
+ * @param array $args Array of parameters passed to hook functions
+ * @param string|null $deprecatedVersion [optional] Mark hook as deprecated with version number
+ * @return bool Always true
+ * @throws MWException If a callback is invalid, unknown
+ * @throws UnexpectedValueException If a callback returns an abort value.
+ * @since 1.30
+ */
+func (h *Hooks) RunWithoutAbort(event string, args []interface{}, deprecatedVersion string) bool {
+	var funcName string
+	for _, hook := range h.GetHandlers(event) {
+		funcName = ""
+		retVal, _ := h.callHook(event, hook, args, deprecatedVersion, &funcName)
+		if retVal == nil {
+			continue
+		}
+		// Process the return value.
+		if _, ok := retVal.(string); ok {
+			// String returned means error.
+			logs.Debug("Invalid return from %s for unabortable %s.", funcName, event)
+		} else if b, ok := retVal.(bool); ok && b == false {
 			// False was returned. Stop processing, but no error.
 			return false
 		}

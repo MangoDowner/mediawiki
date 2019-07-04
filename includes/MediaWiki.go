@@ -49,6 +49,8 @@ func (m *MediaWiki) Run() {
 	beego.Run()
 }
 
+
+
 func (m *MediaWiki) main() error {
 	//TODO: 路由处理统一放在routers
 	//requests := m.context.GetRequest()

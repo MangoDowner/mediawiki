@@ -5,6 +5,7 @@ import (
 	"github.com/MangoDowner/mediawiki/includes/libs"
 	"github.com/MangoDowner/mediawiki/includes/php"
 	"github.com/astaxie/beego/context"
+	"github.com/astaxie/beego/logs"
 	"go-common/library/log"
 )
 
@@ -85,6 +86,27 @@ func WfMessage(key string, params ...string) *Message {
 
 	return message
 }
+
+/**
+ * Throws a warning that $function is deprecated
+ *
+ * @param string $function
+ * @param string|bool $version Version of MediaWiki that the function
+ *    was deprecated in (Added in 1.19).
+ * @param string|bool $component Added in 1.19.
+ * @param int $callerOffset How far up the call stack is the original
+ *    caller. 2 = function that called the function that called
+ *    wfDeprecated (Added in 1.20)
+ *
+ * @return null
+ */
+func WfDeprecated(function, version, component string, callerOffset int) {
+	if callerOffset == 0 {
+		callerOffset = 2
+	}
+	logs.Debug("Use of %s was deprecated in %s %s.", function, component, version)
+}
+
 
 /**
  * Send a warning either to the debug log or in a PHP error depending on

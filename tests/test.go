@@ -14,3 +14,12 @@ func AssetEqual(answer interface{}, result interface{}, tip string) {
 		fmt.Println("> result: ", result)
 	}
 }
+
+func AssetSame(answer interface{}, result interface{}, tip string) {
+	fmt.Print("[TEST] ")
+	fmt.Println(tip)
+	fmt.Println("> result: ", result)
+
+}
+
+
