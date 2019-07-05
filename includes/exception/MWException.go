@@ -10,13 +10,13 @@ import (
  * @ingroup Exception
  */
  type MWException struct {
- 	err error
+ 	error
  }
 
 
 
 func NewMWException(msg string) *MWException {
 	this := new(MWException)
-	this.err = errors.New(msg)
+	this.error = errors.New(msg)
 	return this
 }

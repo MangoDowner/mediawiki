@@ -17,9 +17,9 @@ type FatalError struct {
 }
 
 
-func NewFatalError(name string) *ConfigException {
-	this := new(ConfigException)
-	this.err = errors.New(fmt.Sprintf("undefined option:'%s'", name))
+func NewFatalError(name string) *FatalError {
+	this := new(FatalError)
+	this.error = errors.New(fmt.Sprintf("undefined option:'%s'", name))
 	return this
 }
 
@@ -28,12 +28,12 @@ func NewFatalError(name string) *ConfigException {
  * @return string
  */
 func (f *FatalError) GetHTML() string {
-	return f.err.Error()
+	return f.error.Error()
 }
 
 /**
  * @return string
  */
 func (f *FatalError) GetText() string {
-	return f.err.Error()
+	return f.error.Error()
 }

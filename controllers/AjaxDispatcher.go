@@ -88,6 +88,7 @@ func (a *AjaxDispatcher) performAction(user interface{}) {
 	if a.mode == "" {
 		return
 	}
+
 	list := config.Configs.GetList("AjaxExportList")
 	if !php.InArray(a.funcName, list)  {
 		logs.Debug(" Bad Request for unknown function %s", a.funcName)

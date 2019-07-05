@@ -1,9 +1,8 @@
 package includes
 
 import (
-	"fmt"
+	"errors"
 	test "github.com/MangoDowner/mediawiki/tests"
-	"go-common/app/admin/main/macross/model/errors"
 	"testing"
 )
 
@@ -11,23 +10,29 @@ import (
  * @covers Hooks::getHandlers
  */
 func TestGetHandlers(t *testing.T) {
-	h := new(Hooks)
+	h := NewHooks()
 
-	test.AssetSame(
-		[]func(){},
-		h.GetHandlers("MediaWikiHooksTest001"),
-		"No hooks registered",
-	)
-
-	//a := NewNothingClass()
-	//h.register("MediaWikiHooksTest001", a)
+	a := NewNothingClass()
+	h.register("MediaWikiHooksTest001", []interface{}{a, "SomeNonStaticWithData"})
 	//WgHooks["MediaWikiHooksTest001"][0] = a
-	test.AssetSame(
-		[]func(){},
-		h.GetHandlers("MediaWikiHooksTest001"),
-		"Hook registered by $wgHooks",
-	)
+	h.Run("MediaWikiHooksTest001", []interface{}{}, "")
 
+}
+
+/**
+ * @covers Hooks::callHook
+ * @expectedException PHPUnit_Framework_Error_Deprecated
+ */
+func TestCallHook_Deprecated(t *testing.T) {
+	h := NewHooks()
+	h.register("MediaWikiHooksTest001", NewNothingClass().SomeNonStaticWithData)
+	// NothingClass::someStatic
+	h.Run("MediaWikiHooksTest001", []interface{}{}, "1.31")
+	test.AssetSame(
+		"",
+		nil,
+		"FatalError",
+	)
 }
 
 /**
@@ -38,19 +43,16 @@ func TestRunWithoutAbort(t *testing.T) {
 	h := NewHooks()
 	var list []int
 
-	h.register("MediaWikiHooksTest001", func() error{
+	h.register("MediaWikiHooksTest001", func(...interface{}) interface{} {
 		list = append(list, 1)
-		fmt.Println("1 TIME")
 		return nil  // Explicit true
 	})
-	h.register("MediaWikiHooksTest001", func() error{
+	h.register("MediaWikiHooksTest001", func(...interface{}) interface{} {
 		list = append(list, 2)
-		fmt.Println("2 TIME")
 		return nil  // Implicit null
 	})
-	h.register("MediaWikiHooksTest001", func() error{
+	h.register("MediaWikiHooksTest001", func(...interface{}) interface{} {
 		list = append(list, 3)
-		fmt.Println("3 TIME")
 		return nil  // No return
 	})
 	h.RunWithoutAbort("MediaWikiHooksTest001", []interface{}{&list}, "")
@@ -58,6 +60,49 @@ func TestRunWithoutAbort(t *testing.T) {
 		[]int{1, 2, 3},
 		list,
 		"All hooks ran.",
+	)
+}
+
+/**
+ * @covers Hooks::runWithoutAbort
+ * @covers Hooks::callHook
+ */
+func TestRunWithoutAbortWarning(t *testing.T) {
+	h := NewHooks()
+	foo := "original"
+
+	h.register("MediaWikiHooksTest001", func(param *string) error {
+		return errors.New("foo error")
+	})
+	h.register("MediaWikiHooksTest001", func(param *string) interface{} {
+		*param = "test"
+		return nil
+	})
+
+	h.RunWithoutAbort("MediaWikiHooksTest001", []interface{}{&foo}, "")
+	test.AssetSame(
+		"test",
+		foo,
+		"Invalid return from hook-MediaWikiHooksTest001-closure for unabortable MediaWikiHooksTest001",
+	)
+}
+
+/**
+ * @expectedException FatalError
+ * @covers Hooks::run
+ */
+func TestFatalError(t *testing.T) {
+	h := NewHooks()
+
+	h.register("MediaWikiHooksTest001", func(...interface{}) interface{} {
+		return "test"
+	})
+
+	h.Run("MediaWikiHooksTest001", []interface{}{}, "")
+	test.AssetSame(
+		"",
+		nil,
+		"FatalError",
 	)
 }
 
@@ -70,10 +115,10 @@ func NewNothingClass() *NothingClass {
 	return this
 }
 
-func (n *NothingClass) SomeNonStaticWithData(data, foo *string) error {
+func (n *NothingClass) SomeNonStaticWithData(data, foo *string) interface{} {
 	n.Calls++
 	if data == nil || foo == nil {
-		return errors.New("data/foo cant be nil", nil)
+		return errors.New("data/foo cant be nil")
 	}
 	*data = "changed-nonstatic"
 	*foo = "changed-nonstatic"
