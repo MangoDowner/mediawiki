@@ -2,6 +2,7 @@ package includes
 
 import (
 	"errors"
+	"fmt"
 	test "github.com/MangoDowner/mediawiki/tests"
 	"testing"
 )
@@ -72,12 +73,18 @@ func TestRunWithoutAbortWarning(t *testing.T) {
 	foo := "original"
 
 	h.register("MediaWikiHooksTest001", func(param *string) error {
-		return errors.New("foo error")
+		return errors.New("LAMBDA func error")
 	})
-	h.register("MediaWikiHooksTest001", func(param *string) interface{} {
-		*param = "test"
-		return nil
+
+	testFunc := func (param *string) bool {
+		fmt.Println("testFunc")
+		return true
+	}
+
+	h.register("MediaWikiHooksTest001", func(param *string) error {
+		return errors.New("func error")
 	})
+	h.register("MediaWikiHooksTest001", testFunc)
 
 	h.RunWithoutAbort("MediaWikiHooksTest001", []interface{}{&foo}, "")
 	test.AssetSame(
