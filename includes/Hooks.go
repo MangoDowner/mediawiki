@@ -30,7 +30,6 @@ type Hooks struct {
 	 handlers map[string][]HookFunc
 }
 
-var wgHooks map[string][]HookFunc
 
 func NewHooks() *Hooks {
 	this := new(Hooks)
@@ -78,7 +77,7 @@ func (h *Hooks) clear(name string) {
  * @return bool True if the hook has a function registered to it
  */
 func (h *Hooks) IsRegistered(name string) bool {
-	_, ok := wgHooks[name]
+	_, ok := WgHooks[name]
 	_, ok1 := h.handlers[name]
 	return ok || ok1
 }
@@ -97,15 +96,15 @@ func (h *Hooks) GetHandlers(name string) (result []HookFunc) {
 		return result
 	}
 	if _, ok := h.handlers[name]; !ok {
-		return wgHooks[name]
+		return WgHooks[name]
 	}
-	if _, ok := wgHooks[name]; !ok {
+	if _, ok := WgHooks[name]; !ok {
 		return h.handlers[name]
 	}
 	for _, v := range h.handlers[name] {
 		result = append(result, v)
 	}
-	for _, v := range wgHooks[name] {
+	for _, v := range WgHooks[name] {
 		result = append(result, v)
 	}
 	return result
@@ -141,7 +140,10 @@ func (h *Hooks) callHook(event string, hook interface{}, args []interface{},
 			params = append(params, reflect.ValueOf(v))
 		}
 		result := reflect.ValueOf(hook).Call(params)
-		ret = result[0]
+		// 考虑到有0返回的情况
+		if len(result) > 0 {
+			ret = result[0].Interface()
+		}
 	} else if reflect.ValueOf(hook).Kind() == reflect.String { // 如果hook是个字符串
 		panic(fmt.Sprintf("String type hook unsupported now: %s", hook))
 	} else {
@@ -187,14 +189,23 @@ func (h *Hooks) Run(event string, args []interface{}, deprecatedVersion string) 
 			continue
 		}
 		// Process the return value.
-		if sA, ok := retVal.(string); ok {
+		switch v := retVal.(type) {
+		case error:
+			if v != nil {
+				// error was returned. Stop processing, but no error.
+				return false
+			}
+		case bool:
+			if !v {
+				// false was returned. Stop processing, but no error.
+				return false
+			}
+		case string:
 			// String returned means error.
-			panic(exception.NewFatalError(sA))
+			panic(exception.NewFatalError(v))
 			return false
-		}
-		if errA, ok := retVal.(error); ok && errA != nil {
-			// False was returned. Stop processing, but no error.
-			return false
+		default:
+			continue
 		}
 	}
 	return true

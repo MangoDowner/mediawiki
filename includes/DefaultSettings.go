@@ -48,7 +48,7 @@ var (
 	 * @warning Hook handlers should be registered at file scope. Registering
 	 * handlers after file scope can lead to unexpected results due to caching.
 	 */
-	WgHooks = map[string][]func()error{}
+	WgHooks = map[string][]HookFunc{}
 
 
 
