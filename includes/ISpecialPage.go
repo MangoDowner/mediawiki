@@ -1,4 +1,4 @@
-package specialpage
+package includes
 
 type ISpecialPage interface {
 	Msg()

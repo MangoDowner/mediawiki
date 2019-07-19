@@ -12,8 +12,7 @@ type Config struct {
 
 func NewConfig() *Config {
 	this := new(Config)
-	//iniConfig, err := config.NewConfig("ini", "conf/app.conf")
-	iniConfig, err := config.NewConfig("ini", "../conf/app.conf")
+	iniConfig, err := config.NewConfig("ini", "conf/app.conf")
 	if err != nil {
 		panic(fmt.Sprintf("fail to load conf file : %s", err))
 	}

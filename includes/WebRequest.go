@@ -192,7 +192,7 @@ func (w *WebRequest) GetFuzzyBool( name string, defaultVal bool ) bool {
 
 /**
  * Return true if the named value is set in the input, whatever that
- * value is (even "0"). Return false if the named value is not set.
+ * value is (even "0"). RwasPostedeturn false if the named value is not set.
  * Example use is checking for the presence of check boxes in forms.
  *
  * @param string $name
@@ -202,6 +202,31 @@ func (w *WebRequest) GetCheck( name string) bool {
 	// Checkboxes and buttons are only present when clicked
 	// Presence connotes truth, absence false
 	return w.GetRawVal(name, nil) != nil
+}
+
+/**
+ * Get the HTTP method used for this request.
+ *
+ * @return string
+ */
+func (w *WebRequest) GetMethod() (method string) {
+	method = w.context.Input.Method()
+	if method == "" {
+		method = "GET"
+	}
+	return method
+}
+
+/**
+ * Return true if the named value is set in the input, whatever that
+ * value is (even "0"). RwasPostedeturn false if the named value is not set.
+ * Example use is checking for the presence of check boxes in forms.
+ *
+ * @param string $name
+ * @return bool
+ */
+func (w *WebRequest) WasPosted() bool {
+	return w.GetMethod() == "POST"
 }
 
 

@@ -7,7 +7,7 @@ import (
 )
 
 type AjaxController struct {
-	BaseController
+	MediaWiki
 }
 
 // Get Send Ajax requests to the Ajax dispatcher.

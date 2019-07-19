@@ -7,7 +7,6 @@ package includes
 
 import (
 	"github.com/MangoDowner/mediawiki/includes/config"
-	"github.com/MangoDowner/mediawiki/includes/services"
 )
 
 /**
@@ -26,7 +25,7 @@ import (
 
  type MediaWikiServices struct {
 	instance interface{}
-	includes.ServiceContainer
+	ServiceContainer
 }
 
 /**
@@ -71,7 +70,7 @@ func (m *MediaWikiServices) getInstance() interface{} {
  * @throws \FatalError
  */
 func (m *MediaWikiServices) newInstance( bootstrapConfig config.IConfig, loadWiring string) *MediaWikiServices {
-	instance := NewMediaWikiServices(bootstrapConfig)
+	instance := NewMediaWikiServices()
 	// Load the default wiring from the specified files.
 	if loadWiring == "load"  {
 		//wiringFiles := bootstrapConfig.Get("ServiceWiringFiles")
@@ -88,7 +87,7 @@ func (m *MediaWikiServices) newInstance( bootstrapConfig config.IConfig, loadWir
  *        This has to contain at least the information needed to set up the 'ConfigFactory'
  *        service.
  */
-func NewMediaWikiServices(config config.IConfig) *MediaWikiServices {
+func NewMediaWikiServices() *MediaWikiServices {
 	this := new(MediaWikiServices)
 	// Register the given Config object as the bootstrap config service.
 	this.DefineService( "BootstrapConfig",
@@ -98,3 +97,14 @@ func NewMediaWikiServices(config config.IConfig) *MediaWikiServices {
 	)
 	return this
 }
+
+/**
+ * @since 1.32
+ * @return SpecialPageFactory
+ */
+func (m *MediaWikiServices) GetSpecialPageFactory() *SpecialPageFactory {
+	return m.GetService("SpecialPageFactory")
+}
+
+
+

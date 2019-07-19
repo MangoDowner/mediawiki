@@ -1,6 +1,8 @@
 package includes
 
-import "github.com/MangoDowner/mediawiki/includes/consts"
+import (
+	"github.com/MangoDowner/mediawiki/includes/consts"
+)
 
 // Set a dummy $wgTitle, because $wgTitle == null breaks various things
 // In a perfect world this wouldn't be necessary

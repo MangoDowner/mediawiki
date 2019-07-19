@@ -1,7 +1,7 @@
 /**
  * Factory for handling the special page list and generating SpecialPage objects.
  */
-package specialpage
+package includes
 
 import (
 	"github.com/MangoDowner/mediawiki/includes/config"

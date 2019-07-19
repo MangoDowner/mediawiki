@@ -4,6 +4,7 @@
 package includes
 
 import (
+	"fmt"
 	"github.com/MangoDowner/mediawiki/includes/consts"
 	"github.com/MangoDowner/mediawiki/includes/linker"
 	"github.com/MangoDowner/mediawiki/includes/php"
@@ -124,7 +125,7 @@ type Title struct {
 	 * @private
 	 * @var string
 	 */
-	PrefixedText interface{}
+	PrefixedText string
 
 	/** @var mixed Cached value for getTitleProtection (create protection) */
 	MTitleProtection interface{}
@@ -179,6 +180,137 @@ func (t *Title) NewFromTitleValue(titleValue *title.TitleValue) *Title {
 }
 
 /**
+ * Get the namespace index, i.e. one of the NS_xxxx constants.
+ *
+ * @return int Namespace index
+ */
+func (t *Title) GetNamespace() int {
+	return t.MNamespace
+}
+
+/**
+ * Returns true if the title is inside the specified namespace.
+ *
+ * Please make use of this instead of comparing to getNamespace()
+ * This function is much more resistant to changes we may make
+ * to namespaces than code that makes direct comparisons.
+ * @param int $ns The namespace
+ * @return bool
+ * @since 1.19
+ */
+func (t *Title) InNamespace(ns int) bool {
+	return NewMWNamespace().Equals(t.MNamespace, ns)
+}
+
+/**
+ * Get the Title fragment (i.e.\ the bit after the #) in text form
+ *
+ * Use Title::hasFragment to check for a fragment
+ *
+ * @return string Title fragment
+ */
+func (t *Title) GetFragment() string {
+	return t.MFragment
+}
+
+/**
+ * Check if a Title fragment is set
+ *
+ * @return bool
+ * @since 1.23
+ */
+func (t *Title) HasFragment() bool {
+	return t.MFragment != ""
+}
+
+/**
+ * Get the main part with underscores
+ *
+ * @return string Main part of the title, with underscores
+ */
+func (t *Title) GetDBkey() string {
+	return t.MDbkeyform
+}
+
+/**
+ * Get the text form (spaces not underscores) of the main part
+ *
+ * @return string Main part of the title
+ */
+func (t *Title) GetText() string {
+	return t.MTextform
+}
+
+/**
+ * Creates a new Title for a different fragment of the same page.
+ *
+ * @since 1.27
+ * @param string $fragment
+ * @return Title
+ */
+func (t *Title) CreateFragmentTarget(fragment string) *Title {
+	result := t.MakeTitle(t.MNamespace, t.GetText(), fragment, t.MInterwiki)
+	return result
+}
+
+/**
+ * Is this Title interwiki?
+ *
+ * @return bool
+ */
+func (t *Title) IsExternal() bool {
+	return t.MInterwiki != ""
+}
+
+/**
+ * Get the interwiki prefix
+ *
+ * Use Title::isExternal to check if a interwiki is set
+ *
+ * @return string Interwiki prefix
+ */
+func (t *Title) GetInterwiki() string {
+	return t.MInterwiki
+}
+
+/**
+ * Return a string representation of this title
+ *
+ * @return string Representation of this title
+ */
+func (t *Title) ToString() string {
+	return t.GetPrefixedText()
+}
+
+/**
+ * Get the prefixed title with spaces.
+ * This is the form usually used for display
+ *
+ * @return string The prefixed title, with spaces
+ */
+func (t *Title) GetPrefixedText() string {
+	if t.PrefixedText != "" {
+		return t.PrefixedText
+	}
+	s := t.prefix(t.MTextform)
+	s = php.Strtr(s, map[string]string{"_" : " "});
+	t.PrefixedText = s
+	return t.PrefixedText
+}
+
+/**
+ * B/C kludge: provide a TitleParser for use by Title.
+ * Ideally, Title would have no methods that need this.
+ * Avoid usage of this singleton by using TitleValue
+ * and the associated services when possible.
+ *
+ * @return TitleFormatter
+ */
+func (t *Title) GetTitleFormatter() {
+	//TODO
+}
+
+/**
  * Create a new Title from a TitleValue
  *
  * @param TitleValue $titleValue Assumed to be safe.
@@ -220,19 +352,30 @@ func (t *Title) NewFromLinkTarget(linkTarget linker.LinkTarget) *Title {
  * @return Title The new object
  */
 func (t *Title) MakeTitle(ns int, title, fragment, interwiki string) *Title {
-	t.MInterwiki = interwiki
-	t.MFragment = fragment
-	t.MNamespace = ns
-	t.MDbkeyform = php.Strtr(title,  map[string]string{" " : "_"})
+	tn := NewTitle()
+	tn.MInterwiki = interwiki
+	tn.MFragment = fragment
+	tn.MNamespace = ns
+	tn.MDbkeyform = php.Strtr(title,  map[string]string{" " : "_"})
 	if ns >= 0 {
-		t.MArticleID = -1
+		tn.MArticleID = -1
 	} else {
-		t.MArticleID = 0
+		tn.MArticleID = 0
 	}
-	t.MUrlform = WfUrlencode(t.MDbkeyform)
-	t.MTextform = php.Strtr(title, map[string]string{"_" : " "})
-	t.mContentModel = "" // initialized lazily in getContentModel()
-	return t
+	tn.MUrlform = WfUrlencode(t.MDbkeyform)
+	tn.MTextform = php.Strtr(title, map[string]string{"_" : " "})
+	tn.mContentModel = "" // initialized lazily in getContentModel()
+	return tn
+}
+
+
+/**
+ * Get the main part with underscores
+ *
+ * @return string Main part of the title, with underscores
+ */
+func (t *Title) GetDBKey() string {
+	return t.MDbkeyform
 }
 
 /**
@@ -242,4 +385,130 @@ func (t *Title) MakeTitle(ns int, title, fragment, interwiki string) *Title {
  */
 func (t *Title) CanExist() bool {
 	return t.MNamespace >= consts.NS_MAIN
+}
+
+/**
+ * Get the namespace text
+ *
+ * @return string|false Namespace text
+ */
+func (t *Title) GetNsText(name string) string {
+	if t.IsExternal() {
+		// This probably shouldn't even happen, except for interwiki transclusion.
+		// If possible, use the canonical name for the foreign namespace.
+		nsText := NewMWNamespace().GetCanonicalName(t.MNamespace)
+		if nsText != "" {
+			return nsText
+		}
+	}
+	//TODO
+	return ""
+}
+
+
+/**
+ * Returns true if this is a special page.
+ *
+ * @return bool
+ */
+
+func (t *Title) IsSpecialPage() bool {
+	return t.MNamespace == consts.NS_SPECIAL
+}
+
+/**
+ * Returns true if this title resolves to the named special page
+ *
+ * @param string $name The special page name
+ * @return bool
+ */
+func (t *Title) IsSpecial(name string) bool {
+	if !t.IsSpecialPage() {
+		return false
+	}
+	thisName := ""
+	if name != thisName {
+		return false
+	}
+	return true
+}
+
+/**
+ * Prefix some arbitrary text with the namespace or interwiki prefix
+ * of this object
+ *
+ * @param string $name The text
+ * @return string The prefixed text
+ */
+func (t *Title) prefix(name string) string {
+	p := ""
+	if t.IsExternal() {
+		p = t.MInterwiki + ":"
+	}
+	if 0 != t.MNamespace {
+		nsText := t.GetNsText("")
+		if nsText != "" {
+			// See T165149. Awkward, but better than erroneously linking to the main namespace.
+
+		}
+		p = fmt.Sprintf("%s%s:", p, nsText)
+	}
+	return p + name
+}
+
+/**
+ * Get the prefixed database key form
+ *
+ * @return string The prefixed title, with underscores and
+ *  any interwiki and namespace prefixes
+ */
+func (t *Title) GetPrefixedDBkey() string {
+	s := t.prefix(t.MDbkeyform)
+	s = php.Strtr(s, map[string]string{" ": "_"})
+	return s
+}
+
+/**
+ * Helper to fix up the get{Canonical,Full,Link,Local,Internal}URL args
+ * get{Canonical,Full,Link,Local,Internal}URL methods accepted an optional
+ * second argument named variant. This was deprecated in favor
+ * of passing an array of option with a "variant" key
+ * Once $query2 is removed for good, this helper can be dropped
+ * and the wfArrayToCgi moved to getLocalURL();
+ *
+ * @since 1.19 (r105919)
+ * @param array|string $query
+ * @param string|string[]|bool $query2
+ * @return string
+ */
+func (t *Title) fixUrlQueryArgs(query, query2 string) (ret string) {
+	if query2 != "" {
+		WfDeprecated("Title::get{Canonical,Full,Link,Local,Internal}URL " +
+		"method called with a second parameter is deprecated. Add your " +
+		"parameter to an array passed as the first parameter.",
+		"1.19", "", 0)
+	}
+	//TODO
+	return ret
+}
+
+/**
+ * Get a real URL referring to this title, with interwiki link and
+ * fragment
+ *
+ * @see self::getLocalURL for the arguments.
+ * @see wfExpandUrl
+ * @param string|string[] $query
+ * @param string|string[]|bool $query2
+ * @param string|int|null $proto Protocol type to use in URL
+ * @return string The URL
+ */
+func (t *Title) GetFullURL(query, query2 string, proto string) (ret string) {
+	//TODO
+	query = t.fixUrlQueryArgs(query, query2)
+
+	// Hand off all the decisions on urls to getLocalURL
+	//url = t.getLocalURL(query)
+
+	return ret
 }

@@ -1,10 +1,9 @@
 /**
  * Parent class for all special pages.
  */
-package specialpage
+package includes
 
 import (
-	"github.com/MangoDowner/mediawiki/includes"
 	"github.com/MangoDowner/mediawiki/includes/consts"
 	"github.com/MangoDowner/mediawiki/includes/title"
 )
@@ -69,8 +68,8 @@ func NewSpecialPage() *SpecialPage {
  * @return Title
  * @throws MWException
  */
-func (w *SpecialPage) GetTitleFor(name, subpage, fragment string) (ret *includes.Title) {
-	return includes.NewTitle().NewFromTitleValue(w.GetTitleValueFor(name, subpage, fragment))
+func (w *SpecialPage) GetTitleFor(name, subpage, fragment string) (ret *Title) {
+	return NewTitle().NewFromTitleValue(w.GetTitleValueFor(name, subpage, fragment))
 }
 
 /**

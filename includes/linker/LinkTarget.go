@@ -65,7 +65,8 @@ type LinkTarget interface {
 	 *
 	 * @return LinkTarget
 	 */
-	CreateFragmentTarget(fragment string) *LinkTarget
+	// TODO: 该方法返回interface类型如何具化为某Struct?
+	//CreateFragmentTarget(fragment string) *LinkTarget
 
 	/**
 	 * Whether this LinkTarget has an interwiki component

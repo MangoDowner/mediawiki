@@ -15,6 +15,34 @@ var (
 	WgUseMediaWikiUIEverywhere = false
 
 	/**
+	 * Additional namespaces. If the namespaces defined in Language.php and
+	 * Namespace.php are insufficient, you can create new ones here, for example,
+	 * to import Help files in other languages. You can also override the namespace
+	 * names of existing namespaces. Extensions should use the CanonicalNamespaces
+	 * hook or extension.json.
+	 *
+	 * @warning Once you delete a namespace, the pages in that namespace will
+	 * no longer be accessible. If you rename it, then you can access them through
+	 * the new namespace name.
+	 *
+	 * Custom namespaces should start at 100 to avoid conflicting with standard
+	 * namespaces, and should always follow the even/odd main/talk pattern.
+	 *
+	 * @par Example:
+	 * @code
+	 * $wgExtraNamespaces = [
+	 *    100 => "Hilfe",
+	 *    101 => "Hilfe_Diskussion",
+	 *    102 => "Aide",
+	 *    103 => "Discussion_Aide"
+	 * ];
+	 * @endcode
+	 *
+	 * @todo Add a note about maintenance/namespaceDupes.php
+	 */
+	WgExtraNamespaces map[int]string
+
+	/**
 	 * Global list of hooks.
 	 *
 	 * The key is one of the events made available by MediaWiki, you can find
