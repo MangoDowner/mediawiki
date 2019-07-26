@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/MangoDowner/mediawiki/includes/languages"
 	"github.com/MangoDowner/mediawiki/includes/setup"
+	"github.com/astaxie/beego/context"
 	"github.com/astaxie/beego/logs"
 )
 
@@ -24,7 +25,7 @@ type RequestContext struct {
 	/**
 	 * @var WikiPage
 	 */
-	 wikipage interface{}
+	wikipage interface{}
 
 	/**
 	 * @var OutputPage
@@ -63,8 +64,9 @@ type RequestContext struct {
 }
 
 
-func NewRequestContext() *RequestContext {
+func NewRequestContext(context *context.Context) *RequestContext {
 	this := new(RequestContext)
+	this.request = NewWebRequest(context)
 	return this
 }
 
@@ -131,6 +133,8 @@ func (m *RequestContext) SetTitle(title *Title) {
  */
 func (m *RequestContext) GetTitle() *Title {
 	if m.title != nil {
+		fmt.Println("GetTitle")
+		fmt.Println(m.title)
 		return m.title
 	}
 	m.title = WgTitle

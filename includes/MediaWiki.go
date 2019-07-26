@@ -27,12 +27,8 @@ type MediaWiki struct {
 	action string
 }
 
-func NewMediaWiki(cs *IContextSource) *MediaWiki {
+func NewMediaWiki() *MediaWiki {
 	this := new(MediaWiki)
-	if cs == nil {
-		cs = NewRequestContext().GetMain()
-	}
-	this.context = cs
 	// TODO
 	this.config = nil
 	return this

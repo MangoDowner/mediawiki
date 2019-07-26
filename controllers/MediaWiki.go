@@ -9,21 +9,80 @@ import (
 	"github.com/MangoDowner/mediawiki/includes"
 	"github.com/MangoDowner/mediawiki/includes/actions"
 	"github.com/MangoDowner/mediawiki/includes/config"
+	"github.com/MangoDowner/mediawiki/includes/consts"
 	"github.com/astaxie/beego"
 )
 
 type MediaWiki struct {
-	/**
-	 * @var IContextSource
-	 */
 	beego.Controller
-	includes.RequestContext
+
+	context *includes.RequestContext
+	/**
+	   * @var IContextSource
+	*/
 
 	/**
 	 * @var String Cache what action this request is
 	 */
 	action string
 }
+
+// Prepare 这个函数主要是为了用户扩展用的，这个函数会在下面定义的这些 Method 方法之前执行.
+// 用户可以重写这个函数实现类似用户验证之类。
+func (c *MediaWiki) Prepare() {
+	context := includes.NewRequestContext(c.Controller.Ctx)
+	c.context = context
+}
+
+func (c *MediaWiki) Entry() {
+	// Get Send Ajax requests to the Ajax dispatcher.
+	if c.GetString("action") == "ajax" {
+		// Set a dummy title, because $wgTitle == null might break things
+		title := includes.NewTitle().MakeTitle(consts.NS_SPECIAL,
+			fmt.Sprintf("Badtitle/performing an AJAX call in __METHOD__"), "", "")
+		c.context.SetTitle(title)
+		dispatcher := NewAjaxDispatcher(&c.Controller, nil)
+		dispatcher.performAction(nil)
+		return
+	}
+
+	// Get title from request parameters,
+	// is set on the fly by parseTitle the first time.
+	title := c.GetTitle()
+	action := c.GetAction()
+	fmt.Println("TITLE:", title)
+	fmt.Println("ACTION:", action)
+	//TODO:
+
+	// If the user has forceHTTPS set to true, or if the user
+	// is in a group requiring HTTPS, or if they have the HTTPS
+	// preference set, redirect them to HTTPS.
+	// Note: Do this after $wgTitle is setup, otherwise the hooks run from
+	// isLoggedIn() will do all sorts of weird stuff.
+	if false {
+		// TODO 转向HTTPS
+		return
+	}
+
+	// TODO 缓存
+	if title.CanExist() && false {
+
+	}
+
+	// Actually do the work of the request and build up any output
+	c.performRequest()
+
+	// Now commit any transactions, so that unreported errors after
+	// output() don't roll back the whole DB transaction and so that
+	// we avoid having both success and error text in the response
+	// TODO:
+	//$this->doPreOutputCommit( $outputWork );
+
+	c.Data["Website"] = "beego.me"
+	c.Data["Email"] = "astaxie@gmail.com"
+	c.TplName = "index.tpl"
+}
+
 
 /**
  * Parse the request to get the Title object
@@ -32,11 +91,18 @@ type MediaWiki struct {
  * @return Title Title object to be $wgTitle
  */
 func (b *MediaWiki) parseTitle() (ret *includes.Title, err error) {
+	request := b.context.GetRequest();
+
 	curId := b.GetString("curid")
-	title := b.GetString("title")
+	title := b.Ctx.Input.Param(":title")
+
+
+	//title := b.GetString("title")
 	action := b.GetString("action")
+	title1 := request.GetVal()
+	fmt.Println("parseTitle:", title)
 	//TODO
-	if b.RequestContext.GetRequest().GetCheck("search") {
+	if b.context.GetRequest().GetCheck("search") {
 		return ret, nil
 	}
 
@@ -51,14 +117,14 @@ func (b *MediaWiki) parseTitle() (ret *includes.Title, err error) {
  * @return Title
  */
 func (b *MediaWiki) GetTitle() *includes.Title {
-	if !b.HasTitle() {
+	if !b.context.HasTitle() {
 		title, err := b.parseTitle()
 		if err != nil {
 			title = includes.NewSpecialPage().GetTitleFor("Badtitle", "", "")
 		}
-		b.SetTitle(title)
+		b.context.SetTitle(title)
 	}
-	return b.RequestContext.GetTitle()
+	return b.context.GetTitle()
 }
 
 /**
@@ -90,7 +156,7 @@ func (b *MediaWiki) performRequest() {
 	//request := b.Ctx.Request
 	title := b.GetTitle()
 	//requestTitle := title
-	output := b.GetOutput()
+	output := b.context.GetOutput()
 	//user := b.GetUser()
 
 	if b.GetString("printable") == "yes" {
@@ -102,9 +168,9 @@ func (b *MediaWiki) performRequest() {
 	// Invalid titles. T23776: The interwikis must redirect even if the page name is empty.
 	fmt.Println("INVALID")
 	fmt.Println("title:", title)
-	fmt.Println("title.GetDBKey():", title.GetDBKey())
-	fmt.Println("title.IsExternal():", title.IsExternal())
-	fmt.Println(`title.IsSpecial("Badtitle"):`, title.IsSpecial("Badtitle"))
+	//fmt.Println("title.GetDBKey():", title.GetDBKey())
+	//fmt.Println("title.IsExternal():", title.IsExternal())
+	//fmt.Println(`title.IsSpecial("Badtitle"):`, title.IsSpecial("Badtitle"))
 
 	if title == nil ||
 		(title.GetDBKey() == "" && !title.IsExternal()) ||
@@ -231,8 +297,8 @@ func (b *MediaWiki) GetMethod() (method string) {
  * @param string $name
  * @return bool
  */
-func (b *MediaWiki) WasPosted() bool {
-	return b.GetMethod() == "POST"
+func (m *MediaWiki) WasPosted() bool {
+	return m.GetMethod() == "POST"
 }
 
 

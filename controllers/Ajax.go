@@ -15,7 +15,7 @@ func (c *AjaxController) Ajax() {
 	// Set a dummy title, because $wgTitle == null might break things
 	title := includes.NewTitle().MakeTitle(consts.NS_SPECIAL,
 		fmt.Sprintf("Badtitle/performing an AJAX call in __METHOD__"), "", "")
-	c.SetTitle(title)
+	c.context.SetTitle(title)
 	dispatcher := NewAjaxDispatcher(&c.Controller, nil)
 	dispatcher.performAction(nil)
 

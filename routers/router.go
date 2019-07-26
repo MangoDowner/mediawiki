@@ -6,9 +6,11 @@ import (
 )
 
 func init() {
-    beego.Router("/", &controllers.MainController{},
-		"get,post:Main")
-    beego.Router("/", &controllers.MainController{})
+
+    beego.Router("/",&controllers.MediaWiki{},
+		"get,post:Entry")
+    beego.Router("/entry/:title:string", &controllers.MediaWiki{},
+		"get,post:Entry")
 	// Send Ajax requests to the Ajax dispatcher.
     beego.Router("/test", &controllers.TestController{})
 	beego.Router("/ajax", &controllers.AjaxController{},

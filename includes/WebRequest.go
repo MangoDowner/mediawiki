@@ -5,7 +5,6 @@ package includes
 
 import (
 	"github.com/MangoDowner/mediawiki/includes/php"
-	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
 	"reflect"
 	"strings"
@@ -86,7 +85,7 @@ func NewWebRequest(context *context.Context) *WebRequest {
 	// We don't use $_REQUEST here to avoid interference from cookies...
 	// TODO: 此处用beego的params代替php的$_POST + $_GET;
 	this.context = context
-	this.data = beego.Controller{}.Ctx.Input.Params()
+	this.data = context.Input.Params()
 	return this
 }
 
