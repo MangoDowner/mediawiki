@@ -4,9 +4,13 @@
 package includes
 
 import (
+	"fmt"
 	"github.com/MangoDowner/mediawiki/includes/config"
 	"github.com/MangoDowner/mediawiki/includes/languages"
+	"github.com/MangoDowner/mediawiki/includes/linker"
+	"github.com/MangoDowner/mediawiki/includes/php"
 	"github.com/MangoDowner/mediawiki/includes/specials"
+	"github.com/astaxie/beego/context"
 )
 
 /**
@@ -267,4 +271,80 @@ func (s *SpecialPageFactory) getPageList() map[string]ISpecialPage {
 	// or conditionally register special pages.
 	//Hooks::run( "SpecialPage_initList", [ &$this->list ] );
 	return s.list
+}
+
+/**
+ * Initialise and return the list of special page aliases. Returns an array where
+ * the key is an alias, and the value is the canonical name of the special page.
+ * All registered special pages are guaranteed to map to themselves.
+ * @return array
+ */
+func (s *SpecialPageFactory) GetAliasList() (ret map[string]string) {
+	if len(s.aliases) != 0 {
+		return s.aliases
+	}
+	//aliases := s.contLang.GetSpecialPageAliases()
+	return
+}
+
+/**
+ * Given a special page name with a possible subpage, return an array
+ * where the first element is the special page name and the second is the
+ * subpage.
+ *
+ * @param string $alias
+ * @return array Array( String, String|null ), or array( null, null ) if the page is invalid
+ */
+func (s *SpecialPageFactory) ResolveAlias(alias string) (ret []string) {
+	bits := php.Explode("/", alias, 2)
+
+	caseFoldedAlias := s.contLang.CaseFold(bits[0])
+	caseFoldedAlias = php.Strtr(caseFoldedAlias, map[string]string{" " : "_"})
+	//alias := s.GetAliasList()
+	return ret
+}
+
+/**
+ * Find the object with a given name and return it (or NULL)
+ *
+ * @param string $name Special page name, may be localised and/or an alias
+ * @return SpecialPage|null SpecialPage object or null if the page doesn't exist
+ */
+func (s *SpecialPageFactory) GetPage(name string) bool {
+
+	return true
+}
+
+/**
+ * Execute a special page path.
+ * The path may contain parameters, e.g. Special:Name/Params
+ * Extracts the special page name and call the execute method, passing the parameters
+ *
+ * Returns a title object if the page is redirected, false if there was no such special
+ * page, and true if it was successful.
+ *
+ * @param Title &$title
+ * @param IContextSource &$context
+ * @param bool $including Bool output is being captured for use in {{special:whatever}}
+ * @param LinkRenderer|null $linkRenderer (since 1.28)
+ *
+ * @return bool|Title
+ */
+func (s *SpecialPageFactory) ExecutePath(title *Title, context *context.Context, including bool,
+ 	linkRenderer *linker.LinkRenderer) (ret *Title) {
+	// @todo FIXME: Redirects broken due to this call
+	bits := php.Explode("/", title.GetDBKey(), 2)
+	name := bits[0]
+	var par string
+	// T4087
+	if len(bits) >= 2 && bits[1] != "" {
+		par = bits[1]
+	}
+
+	page := s.GetPage(name)
+	if !page {
+
+	}
+	fmt.Println(par)
+	return
 }

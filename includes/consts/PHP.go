@@ -7,3 +7,8 @@ package consts
  * @link http://php.net/manual/en/errorfunc.constants.php
  */
 const E_USER_WARNING = 512
+
+/**
+ * The infinite
+ */
+const INF = int(^uint(0) >> 1)

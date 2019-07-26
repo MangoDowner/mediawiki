@@ -1,3 +1,7 @@
+/**
+ * Helper class for the index.php entry point.
+ * 改编自includes/MediaWiki.php
+ */
 package controllers
 
 import (
@@ -47,6 +51,12 @@ func (c *MainController) Main() {
 
 	// Actually do the work of the request and build up any output
 	c.performRequest()
+
+	// Now commit any transactions, so that unreported errors after
+	// output() don't roll back the whole DB transaction and so that
+	// we avoid having both success and error text in the response
+	// TODO:
+	//$this->doPreOutputCommit( $outputWork );
 
 	c.Data["Website"] = "beego.me"
 	c.Data["Email"] = "astaxie@gmail.com"
