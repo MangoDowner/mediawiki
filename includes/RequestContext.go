@@ -94,9 +94,9 @@ func (m *RequestContext) GetRequest() *WebRequest {
 	}
 	if setup.WgCommandLineMode {
 		// TODO: $this->request = new FauxRequest( [] );
-		m.request = new(WebRequest)
+		m.request = NewWebRequest(m.request.context)
 	} else {
-		m.request = new(WebRequest)
+		m.request = NewWebRequest(m.request.context)
 	}
 	return m.request
 }

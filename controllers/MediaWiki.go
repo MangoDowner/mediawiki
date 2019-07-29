@@ -49,9 +49,7 @@ func (c *MediaWiki) Entry() {
 	// Get title from request parameters,
 	// is set on the fly by parseTitle the first time.
 	title := c.GetTitle()
-	action := c.GetAction()
-	fmt.Println("TITLE:", title)
-	fmt.Println("ACTION:", action)
+	//action := c.GetAction()
 	//TODO:
 
 	// If the user has forceHTTPS set to true, or if the user
@@ -93,21 +91,18 @@ func (c *MediaWiki) Entry() {
 func (b *MediaWiki) parseTitle() (ret *includes.Title, err error) {
 	request := b.context.GetRequest();
 
-	curId := b.GetString("curid")
-	title := b.Ctx.Input.Param(":title")
-
-
-	//title := b.GetString("title")
-	action := b.GetString("action")
-	title1 := request.GetVal()
-	fmt.Println("parseTitle:", title)
+	curId := request.GetInt("curid", 0)
+	// 获取/url.../:title
+	title := request.GetVal(":title", "")
+	//action := request.GetVal("action", "")
 	//TODO
 	if b.context.GetRequest().GetCheck("search") {
 		return ret, nil
+	} else if curId != 0 {
+
+	} else {
+		ret = includes.NewTitle().NewFromURL(title)
 	}
-
-	fmt.Println("[parseTitle]", curId, title, action)
-
 	return ret, nil
 }
 
@@ -155,6 +150,8 @@ func (b *MediaWiki) GetAction() string {
 func (b *MediaWiki) performRequest() {
 	//request := b.Ctx.Request
 	title := b.GetTitle()
+	fmt.Println("performRequest title:", title)
+
 	//requestTitle := title
 	output := b.context.GetOutput()
 	//user := b.GetUser()
@@ -166,8 +163,6 @@ func (b *MediaWiki) performRequest() {
 	includes.NewHooks().Run("BeforeInitialize", []interface{}{&title, &unused}, "")
 
 	// Invalid titles. T23776: The interwikis must redirect even if the page name is empty.
-	fmt.Println("INVALID")
-	fmt.Println("title:", title)
 	//fmt.Println("title.GetDBKey():", title.GetDBKey())
 	//fmt.Println("title.IsExternal():", title.IsExternal())
 	//fmt.Println(`title.IsSpecial("Badtitle"):`, title.IsSpecial("Badtitle"))
@@ -195,7 +190,6 @@ func (b *MediaWiki) performRequest() {
 	if !b.tryNormaliseRedirect(title) {
 		// Prevent information leak via Special:MyPage et al (T109724)
 		spFactory = includes.NewMediaWikiServices().GetSpecialPageFactory()
-		fmt.Println("FAC:", spFactory)
 	}
 
 	// Special pages ($title may have changed since if statement above)

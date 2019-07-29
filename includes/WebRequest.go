@@ -114,7 +114,8 @@ func (w *WebRequest) GetGPCVal(arr map[string]string, name string, defaultVal in
 		// Check for alternate/legacy character encoding.
 		//TODO: 省略了一些代码
 	}
-	return data
+	result = w.NormalizeUnicode(data)
+	return result
 }
 
 
@@ -142,6 +143,19 @@ func (w *WebRequest) GetRawVal(name string, defaultVal interface{}) (result inte
 }
 
 /**
+ * Fetch an integer value from the input or return $default if not set.
+ * Guaranteed to return an integer; non-numeric input will typically
+ * return 0.
+ *
+ * @param string $name
+ * @param int $default
+ * @return int
+ */
+func (w *WebRequest) GetInt(name string, defaultVal int) (result int) {
+
+	return (w.GetRawVal(name, defaultVal)).(int)
+}
+/**
  * Fetch a scalar from the input or return $default if it's not set.
  * Returns a string. Arrays are discarded. Useful for
  * non-freeform text inputs (e.g. predefined internal text keys
@@ -153,10 +167,11 @@ func (w *WebRequest) GetRawVal(name string, defaultVal interface{}) (result inte
  */
 func (w *WebRequest) GetVal(name string, defaultVal string) (result string) {
 	val := w.GetGPCVal(w.data, name, defaultVal)
+
 	if php.IsArray(val) {
 		result = defaultVal
 	}
-	return result
+	return val.(string)
 }
 
 /**
@@ -228,5 +243,16 @@ func (w *WebRequest) WasPosted() bool {
 	return w.GetMethod() == "POST"
 }
 
+/**
+ * Recursively normalizes UTF-8 strings in the given array.
+ *
+ * @param string|array $data
+ * @return array|string Cleaned-up version of the given
+ * @private
+ */
+func (w *WebRequest) NormalizeUnicode(data interface{}) interface{} {
+	// todo
+	return data
+}
 
 

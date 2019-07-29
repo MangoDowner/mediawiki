@@ -180,6 +180,28 @@ func (t *Title) NewFromTitleValue(titleValue *title.TitleValue) *Title {
 }
 
 /**
+ * THIS IS NOT THE FUNCTION YOU WANT. Use Title::newFromText().
+ *
+ * Example of wrong and broken code:
+ * $title = Title::newFromURL( $wgRequest->getVal( 'title' ) );
+ *
+ * Example of right code:
+ * $title = Title::newFromText( $wgRequest->getVal( 'title' ) );
+ *
+ * Create a new Title from URL-encoded text. Ensures that
+ * the given title's length does not exceed the maximum.
+ *
+ * @param string $url The title, as might be taken from a URL
+ * @return Title|null The new object, or null on an error
+ */
+func (t *Title) NewFromURL(url string) *Title {
+	// TODO
+	return t
+}
+
+
+
+/**
  * Get the namespace index, i.e. one of the NS_xxxx constants.
  *
  * @return int Namespace index
